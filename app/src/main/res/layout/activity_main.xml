@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <!-- URL bar (swipe it sideways to change tab) -->
+    <com.dparadox.tabspace.SwipeFrameLayout
+        android:id="@+id/swipeUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.card.MaterialCardView
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="26dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <View
+                    android:id="@+id/tabDot"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="18dp"
+                    android:background="@drawable/bg_dot" />
+                <EditText
+                    android:id="@+id/urlInput"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Search or type URL"
+                    android:imeOptions="actionGo"
+                    android:importantForAutofill="no"
+                    android:inputType="textUri"
+                    android:paddingHorizontal="12dp"
+                    android:selectAllOnFocus="true"
+                    android:singleLine="true"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp" />
+                <ImageButton
+                    android:id="@+id/btnReload"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Reload"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </com.dparadox.tabspace.SwipeFrameLayout>
+
+    <!-- Progress -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:visibility="invisible" />
+
+    <!-- Page + tab switcher. Animation overlays are added to contentRoot. -->
+    <FrameLayout
+        android:id="@+id/contentRoot"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <FrameLayout
+            android:id="@+id/pageArea"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <FrameLayout
+                android:id="@+id/webContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- NeZu Space home screen. No background: the window picture shows through. -->
+            <LinearLayout
+                android:id="@+id/homeView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <ImageView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="40dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@mipmap/ic_launcher" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="NeZu Space"
+                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/homeProfileName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/homeGrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="28dp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:paddingHorizontal="12dp"
+                    android:paddingBottom="24dp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Tab panel: dim scrim + bottom sheet with all tabs and the + button -->
+        <FrameLayout
+            android:id="@+id/switcher"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/switcherScrim"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#99000000"
+                android:clickable="true"
+                android:focusable="false" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/switcherPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardElevation="8dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.Nezu.Sheet"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/tabList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clipToPadding="false"
+                        android:overScrollMode="ifContentScrolls"
+                        android:paddingTop="6dp"
+                        android:paddingBottom="6dp" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <ImageButton
+                            android:id="@+id/btnNewInPanel"
+                            android:layout_width="64dp"
+                            android:layout_height="52dp"
+                            android:layout_gravity="center_horizontal"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="New tab"
+                            android:src="@drawable/ic_add"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+                    </FrameLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Bottom nav bar (swipe it sideways to change profile) -->
+    <com.dparadox.tabspace.SwipeFrameLayout
+        android:id="@+id/swipeBottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/bottomBar"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                style="?attr/materialIconButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:contentDescription="Back"
+                app:icon="@drawable/ic_back" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnForward"
+                style="?attr/materialIconButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:contentDescription="Forward"
+                app:icon="@drawable/ic_forward" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnHome"
+                style="?attr/materialIconButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:contentDescription="Home"
+                app:icon="@drawable/ic_home" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1">
+                <ImageButton
+                    android:id="@+id/btnTabs"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Tabs"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_tabs"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+                <TextView
+                    android:id="@+id/tabCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <!-- Profile button: current profile initial + colour -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1">
+                <ImageButton
+                    android:id="@+id/btnProfiles"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Profiles"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_profile"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+                <TextView
+                    android:id="@+id/profileInitialBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMenu"
+                style="?attr/materialIconButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:contentDescription="Menu"
+                app:icon="@drawable/ic_more" />
+        </LinearLayout>
+    </com.dparadox.tabspace.SwipeFrameLayout>
+</LinearLayout>

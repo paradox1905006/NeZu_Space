@@ -1,0 +1,1 @@
+Multi-tab browser where every tab and profile is fully isolated

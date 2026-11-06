@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/action_home"          android:title="Home" />
+    <item android:id="@+id/action_add_home"      android:title="Add to Home" />
+    <item android:id="@+id/action_add_phone"     android:title="Add to phone home screen" />
+    <item android:id="@+id/action_pin"           android:title="Pin tab" />
+    <item android:id="@+id/action_edit"          android:title="Edit tab" />
+    <item android:id="@+id/action_avatar"        android:title="Set tab avatar" />
+    <item android:id="@+id/action_search_engine" android:title="Search engine" />
+    <item android:id="@+id/action_downloads"     android:title="Downloads" />
+    <item android:id="@+id/action_copy"          android:title="Copy link" />
+    <item android:id="@+id/action_cookies"       android:title="Cookies" />
+    <item android:id="@+id/action_close"         android:title="Close tab" />
+    <item android:id="@+id/action_settings"      android:title="Settings" />
+</menu>

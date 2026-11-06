@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.Tabspace" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#BAC3FF</item>
+        <item name="colorOnPrimary">#08218A</item>
+        <item name="colorPrimaryContainer">#293CA0</item>
+        <item name="colorOnPrimaryContainer">#DEE0FF</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurfaceContainer</item>
+    </style>
+</resources>

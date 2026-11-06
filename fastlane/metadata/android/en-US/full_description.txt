@@ -1,0 +1,24 @@
+NeZu Space is a multi-tab browser where every tab behaves like its own browser. Each tab keeps its own cookies, storage, cache and history, so logins and sessions never mix.
+
+<b>Profiles</b>
+Group your tabs into profiles, each with its own colour, picture, search engine, home shortcuts and downloads. Swipe the bottom bar to change profile.
+
+<b>Tabs and gestures</b>
+Swipe the address bar to change tab, swipe a tab card or profile row to close it. Pin tabs, give them a name, colour or picture.
+
+<b>Home screen</b>
+A native home with shortcut tiles that show the website's picture. Add your own picture, sort, edit, share, or pin a shortcut to your phone's home screen.
+
+<b>Downloads</b>
+Per-profile downloads with pause and resume, add a download by pasting a link, open, copy link, download again or delete the file.
+
+<b>Looks</b>
+Material 3 and Material You colours, light and dark theme, and your own background picture with adjustable opacity. Book page-turn and dust animations when you change, close or create tabs and profiles, which can be switched off.
+
+<b>Sounds</b>
+Optional sound effects for tab and profile change, delete, create and app start. Every sound has its own switch and preview, and you can choose your own audio.
+
+<b>More</b>
+Built-in ad blocker, long-press menus for images and links, cookie tools, and a "Don't sleep" option that keeps the screen on.
+
+NeZu Space has no account, no analytics and no tracking. Isolation uses the WebView multi-profile API and needs a recent Android System WebView (110 or newer).

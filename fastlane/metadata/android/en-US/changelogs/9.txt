@@ -1,0 +1,4 @@
+Sounds: new Settings > Sounds section.
+- Sounds for tab/profile change, delete, create and app start
+- On/off switch, preview and custom sound for each one
+- Master switch for all sounds
