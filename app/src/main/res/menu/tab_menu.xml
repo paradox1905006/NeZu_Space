@@ -8,7 +8,10 @@
     <item android:id="@+id/action_search_engine" android:title="Search engine" />
     <item android:id="@+id/action_downloads"     android:title="Downloads" />
     <item android:id="@+id/action_copy"          android:title="Copy link" />
+    <item android:id="@+id/action_history"       android:title="History" />
     <item android:id="@+id/action_cookies"       android:title="Cookies" />
+    <item android:id="@+id/action_clear_data"    android:title="Clear data" />
+    <item android:id="@+id/action_site_info"     android:title="Site info" />
     <item android:id="@+id/action_close"         android:title="Close tab" />
     <item android:id="@+id/action_settings"      android:title="Settings" />
 </menu>

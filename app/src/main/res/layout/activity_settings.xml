@@ -272,6 +272,31 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ═══ PRIVACY & SECURITY ═══ -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="6dp"
+                android:letterSpacing="0.12"
+                android:text="PRIVACY &amp; SECURITY"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorPrimary" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp">
+                <LinearLayout
+                    android:id="@+id/privacyList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp" />
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ═══ SOUNDS ═══ -->
             <TextView
                 android:layout_width="match_parent"
@@ -340,7 +365,7 @@
                 android:layout_marginStart="4dp"
                 android:layout_marginBottom="6dp"
                 android:letterSpacing="0.12"
-                android:text="BACKGROUND PICTURE"
+                android:text="BACKGROUND"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorPrimary" />
 
@@ -371,7 +396,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
-                            android:text="No picture selected"
+                            android:text="No background selected"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
                     </FrameLayout>
@@ -387,7 +412,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Choose picture" />
+                            android:text="Choose picture, GIF or video" />
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRemoveBg"
                             style="?attr/materialButtonOutlinedStyle"
@@ -464,6 +489,39 @@
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchWebTransparent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/rowVideoSound"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Video sound"
+                                android:textAppearance="?attr/textAppearanceBodyLarge" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Play the sound of the background video. Off keeps it silent."
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchVideoSound"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp" />

@@ -15,6 +15,21 @@ object AdBlocker {
     /** Read on WebView background threads, so keep it volatile. */
     @Volatile var enabled = true
 
+    /** Settings > Privacy & Security > Block trackers: analytics and tracking hosts are blocked too. */
+    @Volatile var blockTrackers = false
+
+    /** Analytics / tracking hosts and all their sub-domains. */
+    private val trackerDomains = hashSetOf(
+        "google-analytics.com", "googletagmanager.com", "analytics.google.com", "stats.g.doubleclick.net",
+        "connect.facebook.net", "facebook.net", "pixel.facebook.com", "analytics.twitter.com", "static.ads-twitter.com",
+        "hotjar.com", "hotjar.io", "mixpanel.com", "segment.io", "segment.com", "amplitude.com", "fullstory.com",
+        "clarity.ms", "mouseflow.com", "crazyegg.com", "heap.io", "heapanalytics.com", "optimizely.com",
+        "newrelic.com", "nr-data.net", "bugsnag.com", "sentry.io", "branch.io", "adjust.com", "appsflyer.com",
+        "kochava.com", "singular.net", "chartbeat.com", "chartbeat.net", "parsely.com", "demdex.net",
+        "omtrdc.net", "2o7.net", "bluekai.com", "krxd.net", "exelator.com", "agkn.com", "rlcdn.com",
+        "semasio.net", "mathtag.com", "turn.com", "everesttech.net", "tiktok-analytics.com", "analytics.tiktok.com"
+    )
+
     /** Hosts and all their sub-domains. */
     private val domains = hashSetOf(
         "doubleclick.net", "googlesyndication.com", "googleadservices.com", "googletagservices.com",
@@ -61,13 +76,25 @@ object AdBlocker {
         }
     }
 
+    /** Analytics / tracking host (only used when [blockTrackers] is on). */
+    fun isTrackerHost(host: String?): Boolean {
+        var d = host?.lowercase() ?: return false
+        while (true) {
+            if (d in trackerDomains) return true
+            val i = d.indexOf('.')
+            if (i < 0 || i == d.lastIndexOf('.')) return false
+            d = d.substring(i + 1)
+        }
+    }
+
     private val empty get() = WebResourceResponse(
         "text/plain", "UTF-8", 403, "Blocked", emptyMap(), ByteArrayInputStream(ByteArray(0)))
 
     /** Returns an empty response for blocked sub-resources, null to let the request through. */
     fun intercept(host: String?, isMainFrame: Boolean, url: String? = null): WebResourceResponse? =
-        if (enabled && !isMainFrame &&
-            (isBlockedHost(host) || (url != null && url.substringBefore('#') in userUrls))) empty else null
+        if (!isMainFrame && (
+                (enabled && (isBlockedHost(host) || (url != null && url.substringBefore('#') in userUrls))) ||
+                (blockTrackers && isTrackerHost(host)))) empty else null
 
     private const val CSS = "ins.adsbygoogle,.adsbygoogle,[id^=google_ads_iframe],[id^=div-gpt-ad]," +
         "[id^=taboola],[class*=taboola],[data-ad-slot],[data-google-query-id]," +

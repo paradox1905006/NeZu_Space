@@ -5,7 +5,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class TabStore(context: Context) {
+    private val ctx = context.applicationContext
     private val prefs = context.getSharedPreferences("nezu_v3", Context.MODE_PRIVATE)
+
+    /**
+     * The JSON is saved encrypted (key in the Android Keystore) when Settings > Privacy & Security > "Encrypt saved data"
+     * is on; otherwise, or when the Keystore does not work on this phone, as plain text. Only one of the two is kept.
+     */
+    private fun putJson(ed: android.content.SharedPreferences.Editor, key: String, json: String) {
+        val enc = if (PrivacyPrefs.encryptData(ctx)) SecureStore.encrypt(json) else null
+        if (enc != null) ed.putString(key + "_enc", enc).remove(key)
+        else ed.putString(key, json).remove(key + "_enc")
+    }
+
+    private fun readJson(key: String): String {
+        prefs.getString(key + "_enc", null)?.let { e -> SecureStore.decrypt(e)?.let { return it } }
+        return prefs.getString(key, "[]") ?: "[]"
+    }
 
     data class LoadResult(
         val profiles: MutableList<AppProfile>,
@@ -49,10 +65,10 @@ class TabStore(context: Context) {
                 .put("avatarUri", t.avatarUri ?: ""))
         }
 
-        prefs.edit()
-            .putString("profiles", profArr.toString())
-            .putString("tabs", tabArr.toString())
-            .putString("currentTab", currentTabId)
+        val ed = prefs.edit()
+        putJson(ed, "profiles", profArr.toString())
+        putJson(ed, "tabs", tabArr.toString())
+        ed.putString("currentTab", currentTabId)
             .putString("currentProfile", currentProfileId)
             .apply()
     }
@@ -67,7 +83,7 @@ class TabStore(context: Context) {
         val legacyDownloads = mutableMapOf<String, MutableList<DownloadRecord>>()
 
         try {
-            val arr = JSONArray(prefs.getString("tabs", "[]"))
+            val arr = JSONArray(readJson("tabs"))
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val pid = o.optString("profileId", "default")
@@ -104,7 +120,7 @@ class TabStore(context: Context) {
         } catch (_: Exception) {}
 
         try {
-            val arr = JSONArray(prefs.getString("profiles", "[]"))
+            val arr = JSONArray(readJson("profiles"))
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val id = o.getString("id")

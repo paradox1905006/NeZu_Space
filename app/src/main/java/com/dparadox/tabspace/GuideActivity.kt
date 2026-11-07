@@ -75,6 +75,47 @@ class GuideActivity : AppCompatActivity() {
             "• Tapping a shortcut opens NeZu Space in the right profile.\n" +
             "• Your launcher must support pinned shortcuts."),
 
+        Topic("History",
+            "Menu → History.\n\n" +
+            "Shows the pages you opened in the current profile, newest first (up to 500).\n" +
+            "• Type in the search box to find a page.\n" +
+            "• Tap a page to open it in the current tab.\n" +
+            "• Long-press a page to remove it.\n" +
+            "• \"Clear all\" empties the list.\n\n" +
+            "Private profiles do not record history. You can also clear it with Menu → Clear data → History."),
+
+        Topic("Privacy and security",
+            "Settings → Privacy & Security.\n\n" +
+            "Lock and screen\n" +
+            "• App lock: fingerprint, face or your phone's PIN / pattern when the app opens. \"Lock again\" sets how long the app may be out of sight.\n" +
+            "• Locked profiles: only these profiles ask for the unlock.\n" +
+            "• Hide screen in recent apps: no screenshots and a blank preview. Always on with the app lock, a locked profile or a private profile.\n\n" +
+            "Private browsing\n" +
+            "• Private profiles forget cookies, storage, cache and history when the app is closed (or the next time it starts).\n" +
+            "• Clear data when the app closes: choose what to remove from every profile.\n\n" +
+            "Web\n" +
+            "• Remove tracking from links (utm_, fbclid, gclid ...), Block trackers, Block third-party cookies.\n" +
+            "• HTTPS only: http links open as https, and you are asked before http is used.\n" +
+            "• Safe Browsing warns about dangerous pages. A certificate error shows a warning page you can go back from.\n" +
+            "• Ask before opening other apps.\n" +
+            "• Site permissions: camera, microphone and location are asked once per site. Reset them here or in Menu → Site info.\n\n" +
+            "Downloads and data\n" +
+            "• Warn before risky downloads: program files (apk, exe ...) and downloads that no tap started.\n" +
+            "• The clipboard is emptied one minute after Copy cookies.\n" +
+            "• Encrypt saved data: tabs, profiles, shortcuts and the download list use a key of the phone's Keystore. Pictures and downloaded files are not encrypted.\n\n" +
+            "Menu → Site info shows the address, whether the connection is secure and the certificate."),
+
+        Topic("Clear data",
+            "Menu → Clear data.\n\n" +
+            "Choose what to clear for the current profile only:\n" +
+            "• Cache: saved page files.\n" +
+            "• Form data: saved form entries.\n" +
+            "• History: the saved history list and the back/forward list of this profile's tabs.\n" +
+            "• Web storage: data that sites keep (local storage, IndexedDB).\n" +
+            "• Cookies (login status): you are signed out of every site in this profile.\n" +
+            "• App cache: temporary files of the whole app.\n\n" +
+            "\"Select all\" ticks everything."),
+
         Topic("Cookies",
             "Menu → Cookies\n\n" +
             "• Copy cookies: copies the current page's cookies to the clipboard.\n" +
@@ -95,14 +136,17 @@ class GuideActivity : AppCompatActivity() {
             "Settings → Sounds.\n\n" +
             "• Sound effects: master switch for every sound.\n" +
             "• Four sounds: tab or profile change, tab or profile delete, new tab or profile, and app open. Each has its own on/off switch.\n" +
+            "• Only the app open sound comes with a default. For the others, tap Choose sound and pick your own audio file (up to 15 seconds); until you do, they stay silent.\n" +
             "• Preview plays the sound so you can hear it.\n" +
-            "• Choose sound lets you pick your own audio file (up to 15 seconds). Reset goes back to the default."),
+            "• Reset (app open) goes back to the default; Remove deletes your sound."),
 
-        Topic("Background picture",
-            "Settings → Background picture.\n\n" +
-            "1. Tap \"Choose picture\" and pick any image from your gallery.\n" +
+        Topic("Background (picture, GIF or video)",
+            "Settings → Background.\n\n" +
+            "1. Tap \"Choose picture, GIF or video\" and pick a picture, an animated GIF (up to 30 MB, animates on Android 9 and newer) or a video (up to 150 MB, plays in a loop).\n" +
             "2. Drag \"Picture opacity\": low is faint, high is vivid. You see the change live.\n" +
-            "3. \"Remove\" goes back to plain colours.\n\n" +
+            "3. For a video, \"Video sound\" turns its sound on or off (off by default).\n" +
+            "4. \"Remove\" goes back to plain colours.\n\n" +
+            "A video plays behind the browser screen; Settings and this guide show its first frame. A moving background uses more battery.\n\n" +
             "The picture shows behind the top and bottom bars, the home screen, the tab list and Settings. Websites paint their own background, so the picture does not show through them - unless you turn on \"Show behind web pages\", which only affects pages that have no background of their own."),
 
         Topic("Make it your default browser",
@@ -115,6 +159,24 @@ class GuideActivity : AppCompatActivity() {
             "• Shortcut shows a letter instead of a logo → it appears once the site logo has been downloaded; check your internet connection.\n" +
             "• Download did not start → check free storage and your internet connection.")
     )
+
+    override fun onStart() {
+        super.onStart()
+        LockState.onStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (LockState.appLockNeeded(this)) { finish(); return }
+        if (PrivacyPrefs.secureScreen(this) || PrivacyPrefs.appLock(this))
+            window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    override fun onStop() {
+        LockState.onStop()
+        super.onStop()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

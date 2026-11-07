@@ -11,8 +11,8 @@ android {
         applicationId = "com.dparadox.tabspace"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "3.8"
+        versionCode = 12
+        versionName = "4.1"
     }
 
     buildTypes {
@@ -42,6 +42,7 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     // PickVisualMedia contract for avatar image picking
     implementation("androidx.activity:activity-ktx:1.9.3")

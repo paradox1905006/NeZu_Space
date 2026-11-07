@@ -1,0 +1,6 @@
+New Settings > Privacy & Security:
+app lock, locked and private profiles,
+clear data when closed, tracker and cookie
+blocking, HTTPS only, site permissions,
+risky download warning, encrypted storage.
+New Menu > Site info.

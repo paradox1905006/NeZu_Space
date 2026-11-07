@@ -3,3 +3,8 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 # Tab model is persisted manually via JSON (no reflection), nothing else to keep.
+
+# JavaScript bridge used for blob: downloads
+-keepclassmembers class com.dparadox.tabspace.BlobBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

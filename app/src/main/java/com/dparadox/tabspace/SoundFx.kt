@@ -9,8 +9,9 @@ import android.provider.OpenableColumns
 import java.io.File
 
 /**
- * Sound effects. Four events, each with its own on/off switch, a built-in default sound
- * (res/raw) and an optional custom sound the user picked (copied into private storage).
+ * Sound effects. Four events, each with its own on/off switch and an optional custom sound the
+ * user picked (copied into private storage). Only APP_OPEN ships with a default sound (res/raw);
+ * the other events stay silent until the user chooses a sound for them.
  *
  *  CHANGE   - tab change and profile change
  *  DELETE   - tab delete and profile delete
@@ -19,10 +20,10 @@ import java.io.File
  */
 object SoundFx {
 
-    enum class Event(val key: String, val title: String, val hint: String, val rawRes: Int) {
-        CHANGE("change", "Tab / profile change", "Plays when you switch tab or profile", R.raw.snd_tab_change),
-        DELETE("delete", "Tab / profile delete", "Plays when you close a tab or delete a profile", R.raw.snd_delete),
-        CREATE("create", "New tab / profile", "Plays when a new tab or profile is created", R.raw.snd_create),
+    enum class Event(val key: String, val title: String, val hint: String, val rawRes: Int?) {
+        CHANGE("change", "Tab / profile change", "Plays when you switch tab or profile", null),
+        DELETE("delete", "Tab / profile delete", "Plays when you close a tab or delete a profile", null),
+        CREATE("create", "New tab / profile", "Plays when a new tab or profile is created", null),
         APP_OPEN("app_open", "App open", "Plays when NeZu Space starts", R.raw.snd_app_open),
     }
 
@@ -49,6 +50,9 @@ object SoundFx {
     private fun customFile(c: Context, e: Event) = File(c.filesDir, "sound_${e.key}.snd")
 
     fun hasCustom(c: Context, e: Event) = customFile(c, e).exists()
+
+    /** True when there is something to play: a custom sound, or a built-in default. */
+    fun hasSound(c: Context, e: Event) = hasCustom(c, e) || e.rawRes != null
     fun customName(c: Context, e: Event): String? =
         if (hasCustom(c, e)) p(c).getString("name_${e.key}", "Custom sound") else null
 
@@ -119,6 +123,7 @@ object SoundFx {
 
     private fun start(app: Context, e: Event) {
         stop(e)
+        if (!hasSound(app, e)) return
         val mp = MediaPlayer()
         try {
             mp.setAudioAttributes(
@@ -131,7 +136,7 @@ object SoundFx {
             if (custom.exists()) {
                 mp.setDataSource(custom.path)
             } else {
-                app.resources.openRawResourceFd(e.rawRes).use {
+                app.resources.openRawResourceFd(e.rawRes!!).use {
                     mp.setDataSource(it.fileDescriptor, it.startOffset, it.length)
                 }
             }

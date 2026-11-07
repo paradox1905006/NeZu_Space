@@ -61,6 +61,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.webkit.ProfileStore
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.dparadox.tabspace.databinding.ActivityMainBinding
@@ -76,6 +77,14 @@ class MainActivity : AppCompatActivity() {
         private var coldStart = true
         const val FLIP_MS = 420L
         const val DUST_MS = 700L
+        /** Remembers the download="name" of the last clicked link, so blob: downloads keep their real file name. */
+        const val DOWNLOAD_NAME_HOOK =
+            "(function(){if(window.__nezuHook)return;window.__nezuHook=1;" +
+            "function rec(a){try{if(a&&a.download)window.__nezuName=a.download;}catch(e){}}" +
+            "var oc=HTMLAnchorElement.prototype.click;" +
+            "HTMLAnchorElement.prototype.click=function(){rec(this);return oc.apply(this,arguments);};" +
+            "document.addEventListener('click',function(e){var t=e.target;" +
+            "while(t&&t.tagName!=='A')t=t.parentElement;rec(t);},true);})();"
         val PALETTE = intArrayOf(
             0xFFE53935.toInt(), 0xFFFB8C00.toInt(), 0xFFFDD835.toInt(), 0xFF43A047.toInt(),
             0xFF00ACC1.toInt(), 0xFF1E88E5.toInt(), 0xFF8E24AA.toInt(), 0xFFD81B60.toInt(),
@@ -132,6 +141,32 @@ class MainActivity : AppCompatActivity() {
     private val profilesSupported: Boolean by lazy {
         WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)
     }
+
+    /** Receives blob: downloads from pages (see saveBlob). */
+    private val blobBridge = BlobBridge()
+
+    // ── Privacy & security state ──────────────────────────────────────────────
+    private val lockScreen by lazy { LockScreen(this) { onUnlockSuccess() } }
+    private val lockBack = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() { moveTaskToBack(true) }   // the lock cover must not be closed with Back
+    }
+    private var lockBackAdded = false
+
+    /** Sites the user chose to open over http although "HTTPS only" is on (until the app is closed). */
+    private val httpAllowed = HashSet<String>()
+
+    private var permCallback: ((Boolean) -> Unit)? = null
+    private var permTypes: List<String> = emptyList()
+    private val sitePermLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
+        val cb = permCallback
+        permCallback = null
+        // Location: "approximate" is enough. Camera / microphone: every one that was asked for.
+        val ok = r.isNotEmpty() && (if (permTypes == listOf(PrivacyPrefs.PERM_LOCATION)) r.values.any { it } else r.values.all { it })
+        cb?.invoke(ok)
+    }
+
+    /** Moving (video) background behind the whole UI. */
+    private val videoBg by lazy { VideoBackground(this) }
 
     // ── Saving (debounced so page loads never block the UI) ────────────────────
     private val saveHandler = Handler(Looper.getMainLooper())
@@ -272,6 +307,7 @@ class MainActivity : AppCompatActivity() {
         b.swipeBottom.excluded = b.btnTabs   // the tab button has its own swipe (tabs), the bar swipes profiles
 
         DownloadEngine.listener = { persist() }
+        DownloadEngine.cookieProvider = { rec -> cookieForDownload(rec) }
         setupListeners()
         loadState()
 
@@ -301,6 +337,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadState() {
         val r = store.load()
+        if (coldStart) wipeProfiles(live = false, profiles = r.profiles)   // private profiles / "clear when closed"
         allProfiles.addAll(r.profiles)
         if (allProfiles.isEmpty()) allProfiles.add(AppProfile(name = "Default", color = PALETTE[5]))
         currentProfile = allProfiles.firstOrNull { it.id == r.currentProfileId } ?: allProfiles.first()
@@ -374,10 +411,21 @@ class MainActivity : AppCompatActivity() {
         applyAppTheme()   // picture is cropped to the new screen size
     }
 
+    override fun onStart() {
+        super.onStart()
+        LockState.onStart()
+    }
+
+    override fun onStop() {
+        LockState.onStop()
+        super.onStop()
+    }
+
     override fun onPause() {
         super.onPause()
         awakeHandler.removeCallbacks(awakeOff)
         if (customView == null) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        videoBg.pause()
         current?.webView?.onPause(); persistNow()
     }
     override fun onResume() {
@@ -387,10 +435,14 @@ class MainActivity : AppCompatActivity() {
         applyAppTheme()   // picks up picture / opacity changes made in Settings
         current?.webView?.onResume()
         applyKeepAwake()
+        applyPrivacy()
     }
     override fun onDestroy() {
+        if (isFinishing) wipeProfiles(live = true)
         SoundFx.stopAll()
+        videoBg.release()
         DownloadEngine.listener = null
+        DownloadEngine.cookieProvider = null
         exitFullscreen()
         persistNow()
         allTabs.forEach { destroyWebView(it) }
@@ -403,7 +455,8 @@ class MainActivity : AppCompatActivity() {
 
     /** Window picture + translucent bars/sheets + optional transparent web pages. */
     private fun applyAppTheme() {
-        ThemePrefs.applyToWindow(this)
+        ThemePrefs.applyToWindow(this, videoOverlay = true)
+        videoBg.refresh()
         fun col(attr: Int) = MaterialColors.getColor(b.root, attr)
         b.bottomBar.setBackgroundColor(
             ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainer)))
@@ -623,7 +676,7 @@ class MainActivity : AppCompatActivity() {
         tab.loaded = true
         tab.homeShown = false
         applyHomeState()
-        tab.webView?.loadUrl(url)
+        tab.webView?.loadUrl(prepareUrl(tab, url))
         applyChrome()
     }
 
@@ -823,7 +876,7 @@ class MainActivity : AppCompatActivity() {
     /** New tab that loads in the background; the page you are on stays. */
     private fun openInBackground(url: String) {
         val t = addTab(url)
-        t.webView = createWebView(t).also { it.loadUrl(url) }
+        t.webView = createWebView(t).also { it.loadUrl(prepareUrl(t, url)) }
         t.loaded = true
         refreshSwitcher(); persist()
         toast("Opened in background")
@@ -1166,6 +1219,8 @@ class MainActivity : AppCompatActivity() {
         showTab(tabs.firstOrNull { it.id == lastTabOfProfile[p.id] } ?: tabs.first())
         refreshHome()
         persist()
+        applySecureFlag()
+        enforceLock()
     }
 
     private fun confirmDeleteProfile(p: AppProfile, row: View?, onCancel: () -> Unit = {}) {
@@ -1204,6 +1259,7 @@ class MainActivity : AppCompatActivity() {
             runCatching { ProfileStore.getInstance().deleteProfile(p.webkitProfileName) }
         }, 800)
         p.downloads.toList().forEach { DownloadEngine.discard(it) }
+        HistoryStore.clear(this, p.id)
         allProfiles.remove(p)
         if (wasCurrent) {
             val next = allProfiles.first()
@@ -1237,7 +1293,10 @@ class MainActivity : AppCompatActivity() {
                     R.id.action_search_engine -> showSearchEngineDialog()
                     R.id.action_downloads     -> showDownloadsSheet()
                     R.id.action_copy          -> copyLink(tab)
+                    R.id.action_history       -> showHistory()
                     R.id.action_cookies       -> showCookieMenu(tab)
+                    R.id.action_clear_data    -> showClearDataDialog()
+                    R.id.action_site_info     -> showSiteInfo(tab)
                     R.id.action_close         -> closeTab(tab)
                     R.id.action_settings      -> startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
                 }
@@ -1525,13 +1584,102 @@ class MainActivity : AppCompatActivity() {
         val fileName = fileNameOverride ?: DownloadEngine.fileNameFor(url, contentDisposition, mimeType)
 
         val rec = DownloadRecord(fileName = fileName, url = url, totalBytes = contentLength,
-            mimeType = mimeType, userAgent = userAgent)
+            mimeType = mimeType, userAgent = userAgent, referer = tab.url)
         prof.downloads.add(rec)
         ensureNotificationPermission()
         DownloadEngine.start(rec, rename = rename)
         persist()
 
         if (showProgress) showDownloadProgress(rec)
+    }
+
+    /** Cookies of the profile that owns [rec] (a profile has its own cookie jar, the default one is empty for it). */
+    private fun cookieForDownload(rec: DownloadRecord): String? {
+        val prof = allProfiles.firstOrNull { p -> p.downloads.any { it.id == rec.id } } ?: return null
+        return runCatching {
+            val cm = if (profilesSupported)
+                ProfileStore.getInstance().getProfile(prof.webkitProfileName)?.cookieManager else null
+            (cm ?: CookieManager.getInstance()).getCookie(rec.url)
+        }.getOrNull()
+    }
+
+    /**
+     * blob: links only exist inside the page, so the page is asked to read the blob and hand it over in pieces
+     * (BlobBridge). The file name comes from the link's download="..." attribute (see DOWNLOAD_NAME_HOOK).
+     */
+    private fun saveBlob(tab: Tab, wv: WebView, url: String, mime: String?) {
+        val prof = allProfiles.firstOrNull { it.id == tab.profileId } ?: currentProfile ?: return
+        val type = mime.orEmpty().substringBefore(';').trim()
+        val rec = DownloadRecord(fileName = DownloadEngine.fileNameFor("download", null, type),
+            url = url, mimeType = type, referer = tab.url)
+        // Read the blob straight away (the page may free it soon) and ask for the name the page chose.
+        val grab = "(function(u,t){window.__nezuB=window.__nezuB||{};" +
+            "window.__nezuB[t]=fetch(u).then(function(r){return r.blob();});" +
+            "return window.__nezuName||'';})(${org.json.JSONObject.quote(url)},${org.json.JSONObject.quote(rec.id)})"
+        wv.evaluateJavascript(grab) { raw ->
+            val hinted = runCatching { org.json.JSONTokener(raw).nextValue() as? String }.getOrNull()
+                ?.let { DownloadEngine.cleanFileName(it) }.orEmpty()
+            if (hinted.isNotBlank()) {
+                rec.fileName = if (hinted.substringAfterLast('.', "").let { it.isNotEmpty() && it.length <= 6 }) hinted
+                    else DownloadEngine.fileNameFor(hinted, null, type)
+            }
+            prof.downloads.add(rec)
+            if (!blobBridge.register(rec)) {
+                rec.status = android.app.DownloadManager.STATUS_FAILED
+                persist(); toast("Could not start the download"); return@evaluateJavascript
+            }
+            ensureNotificationPermission()
+            persist()
+            wv.evaluateJavascript(blobStreamJs(rec.id), null)
+            showDownloadProgress(rec)
+        }
+    }
+
+    private fun blobStreamJs(token: String): String {
+        val t = org.json.JSONObject.quote(token)
+        return "(function(t){" +
+            "function fail(){try{NezuBlob.fail(t);}catch(e){}}" +
+            "try{var p=window.__nezuB&&window.__nezuB[t]; if(!p){fail();return;}" +
+            "p.then(function(b){" +
+            "delete window.__nezuB[t];" +
+            "var size=b.size,CH=393216,pos=0;" +
+            "NezuBlob.size(t,size);" +
+            "(function next(){" +
+            "if(pos>=size){NezuBlob.end(t);return;}" +
+            "var fr=new FileReader();" +
+            "fr.onload=function(){var s=fr.result;NezuBlob.chunk(t,s.substring(s.indexOf(',')+1));pos+=CH;next();};" +
+            "fr.onerror=fail;" +
+            "fr.readAsDataURL(b.slice(pos,Math.min(pos+CH,size)));" +
+            "})();" +
+            "}).catch(fail);}catch(e){fail();}" +
+            "})($t);"
+    }
+
+    /** data: links carry the file inside the link itself. */
+    private fun saveDataUrl(tab: Tab, url: String) {
+        val prof = allProfiles.firstOrNull { it.id == tab.profileId } ?: currentProfile ?: return
+        val comma = url.indexOf(',')
+        if (comma < 0) return
+        val meta = url.substring(5, comma)
+        val payload = url.substring(comma + 1)
+        val type = meta.removeSuffix(";base64").substringBefore(';').ifBlank { "application/octet-stream" }
+        val bytes = runCatching {
+            if (meta.endsWith(";base64")) android.util.Base64.decode(payload, android.util.Base64.DEFAULT)
+            else Uri.decode(payload).toByteArray()
+        }.getOrNull() ?: run { toast("Could not read that file"); return }
+
+        val rec = DownloadRecord(fileName = DownloadEngine.fileNameFor("download", null, type),
+            url = "data:$type", mimeType = type, totalBytes = bytes.size.toLong())
+        prof.downloads.add(rec)
+        val out = DownloadEngine.openLocal(rec) ?: run { persist(); toast("Could not start the download"); return }
+        ensureNotificationPermission()
+        persist()
+        Thread {
+            val ok = runCatching { out.use { it.write(bytes) } }.isSuccess
+            rec.downloadedBytes = bytes.size.toLong()
+            DownloadEngine.finishLocal(rec, ok)
+        }.start()
+        toast("Download started")
     }
 
     private fun showDownloadProgress(rec: DownloadRecord) {
@@ -1629,8 +1777,15 @@ class MainActivity : AppCompatActivity() {
             if (c.isBlank() || c == "null") {
                 toast("No cookies found"); return@evaluateJavascript
             }
-            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                .setPrimaryClip(ClipData.newPlainText("cookies", c))
+            val clip = ClipData.newPlainText("cookies", c)
+            if (Build.VERSION.SDK_INT >= 33) {
+                // Keyboards and the clipboard preview do not show the text.
+                clip.description.extras = android.os.PersistableBundle().apply {
+                    putBoolean("android.content.extra.IS_SENSITIVE", true)
+                }
+            }
+            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
+            scheduleClipboardClear("cookies")
             toast("Cookies copied")
         }
     }
@@ -1657,9 +1812,377 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null).show()
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    //  History (Menu > History)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Pages visited in the current profile: search, tap to open, long-press to remove one, Clear all. */
+    private fun showHistory() {
+        val prof = currentProfile ?: return
+        val all = HistoryStore.list(this, prof.id).toMutableList()
+        val shown = ArrayList(all)
+        val dp = resources.displayMetrics.density
+        val fmt = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+
+        val search = android.widget.EditText(this).apply {
+            hint = "Search history"
+            setSingleLine(true)
+        }
+        val empty = TextView(this).apply {
+            text = "No history yet"
+            setPadding(0, (24 * dp).toInt(), 0, (24 * dp).toInt())
+            gravity = android.view.Gravity.CENTER
+        }
+        val list = android.widget.ListView(this).apply {
+            divider = null
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (360 * dp).toInt())
+        }
+        lateinit var dlg: androidx.appcompat.app.AlertDialog
+
+        val adapter = object : android.widget.ArrayAdapter<HistoryStore.Entry>(this, 0, shown) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                val e = getItem(position)!!
+                val row = (convertView as? android.widget.LinearLayout) ?: android.widget.LinearLayout(context).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    setPadding((4 * dp).toInt(), (10 * dp).toInt(), (4 * dp).toInt(), (10 * dp).toInt())
+                    addView(TextView(context).apply { textSize = 16f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+                    addView(TextView(context).apply { textSize = 12f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE; alpha = 0.7f })
+                }
+                (row.getChildAt(0) as TextView).text = e.title.ifBlank { e.url }
+                (row.getChildAt(1) as TextView).text = e.url.substringAfter("://") + "  -  " + fmt.format(java.util.Date(e.time))
+                return row
+            }
+        }
+        list.adapter = adapter
+
+        fun refilter() {
+            val q = search.text.toString().trim().lowercase()
+            shown.clear()
+            shown.addAll(if (q.isEmpty()) all else all.filter { it.title.lowercase().contains(q) || it.url.lowercase().contains(q) })
+            adapter.notifyDataSetChanged()
+            empty.visibility = if (shown.isEmpty()) View.VISIBLE else View.GONE
+            empty.text = if (all.isEmpty()) "No history yet" else "Nothing found"
+        }
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) = refilter()
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+        })
+        list.setOnItemClickListener { _, _, pos, _ ->
+            val e = shown.getOrNull(pos) ?: return@setOnItemClickListener
+            dlg.dismiss()
+            openInCurrent(e.url)
+        }
+        list.setOnItemLongClickListener { _, _, pos, _ ->
+            val e = shown.getOrNull(pos) ?: return@setOnItemLongClickListener true
+            HistoryStore.remove(this, prof.id, e.url)
+            all.removeAll { it.url == e.url }
+            refilter()
+            toast("Removed")
+            true
+        }
+
+        val box = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((24 * dp).toInt(), (8 * dp).toInt(), (24 * dp).toInt(), 0)
+            addView(search); addView(empty); addView(list)
+        }
+        dlg = MaterialAlertDialogBuilder(this)
+            .setTitle("History - ${prof.name}")
+            .setView(box)
+            .setPositiveButton("Close", null)
+            .setNeutralButton("Clear all", null)
+            .create()
+        dlg.show()
+        dlg.getButton(android.content.DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
+            if (all.isEmpty()) return@setOnClickListener
+            HistoryStore.clear(this, prof.id)
+            all.clear()
+            refilter()
+            toast("History cleared")
+        }
+        refilter()
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  Clear data (per profile, the user picks what to clear)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private fun showClearDataDialog() {
+        val prof = currentProfile ?: return
+        val labels = DataWiper.LABELS
+        val checked = booleanArrayOf(true, true, true, false, false, false)
+        val dlg = MaterialAlertDialogBuilder(this)
+            .setTitle("Clear data - ${prof.name}")
+            .setMultiChoiceItems(labels, checked) { _, i, on -> checked[i] = on }
+            .setPositiveButton("Clear") { _, _ ->
+                if (checked.none { it }) toast("Nothing selected") else clearProfileData(prof, checked)
+            }
+            .setNeutralButton("Select all", null)
+            .setNegativeButton("Cancel", null)
+            .create()
+        dlg.show()
+        dlg.getButton(android.content.DialogInterface.BUTTON_NEUTRAL).setOnClickListener { btn ->
+            val selectAll = checked.any { !it }
+            for (i in checked.indices) { checked[i] = selectAll; dlg.listView.setItemChecked(i, selectAll) }
+            (btn as android.widget.Button).text = if (selectAll) "Clear selection" else "Select all"
+        }
+    }
+
+    /** [sel] follows the order of [DataWiper.LABELS]. Only [prof] is touched, except "App cache". */
+    private fun clearProfileData(prof: AppProfile, sel: BooleanArray) {
+        var mask = 0
+        sel.forEachIndexed { i, on -> if (on) mask = mask or DataWiper.BITS[i] }
+        val wvs = allTabs.filter { it.profileId == prof.id }.mapNotNull { it.webView }
+        DataWiper.wipe(this, if (profilesSupported) prof.webkitProfileName else null, wvs, mask, prof.id)
+        if (mask and DataWiper.HISTORY != 0) updateNav()
+        toast("Cleared")
+        if (mask and (DataWiper.STORAGE or DataWiper.COOKIES) != 0) current?.webView?.reload()   // pages show the signed-out state
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  Privacy & security (Settings > Privacy & Security)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Called when the screen comes back: picks up every switch that was changed in Settings. */
+    private fun applyPrivacy() {
+        AdBlocker.blockTrackers = PrivacyPrefs.blockTrackers(this)
+        allTabs.forEach { t -> t.webView?.let { applyWebPrivacy(it) } }
+        applySecureFlag()
+        enforceLock()
+    }
+
+    private fun applyWebPrivacy(wv: WebView) {
+        runCatching { CookieManager.getInstance().setAcceptThirdPartyCookies(wv, !PrivacyPrefs.blockThirdPartyCookies(this)) }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) {
+            runCatching { WebSettingsCompat.setSafeBrowsingEnabled(wv.settings, PrivacyPrefs.safeBrowsing(this)) }
+        }
+    }
+
+    /** Blank picture in the recent-apps list and no screenshots: when asked for, when the app is locked, or in private / locked profiles. */
+    private fun applySecureFlag() {
+        val p = currentProfile
+        val secure = PrivacyPrefs.secureScreen(this) || PrivacyPrefs.appLock(this) ||
+            (p != null && (PrivacyPrefs.isPrivate(this, p.id) || PrivacyPrefs.isLocked(this, p.id)))
+        if (secure) window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
+    // ── App lock and profile lock ───────────────────────────────────────────────
+
+    private fun enforceLock() {
+        val appNeeded = LockState.appLockNeeded(this)
+        val prof = currentProfile
+        val profNeeded = !appNeeded && prof != null && LockState.profileLockNeeded(this, prof.id)
+        when {
+            appNeeded -> showLock("NeZu Space is locked", "Unlock with your fingerprint, face or phone lock.", null)
+            profNeeded -> showLock("${prof!!.name} is locked", "This profile needs your fingerprint, face or phone lock.") {
+                switchToOpenProfile()
+            }
+            lockScreen.isShowing -> {
+                lockScreen.hide()
+                lockBack.isEnabled = false
+                current?.webView?.onResume()
+            }
+        }
+    }
+
+    private fun showLock(title: String, message: String, onSwitch: (() -> Unit)?) {
+        if (!lockBackAdded) { onBackPressedDispatcher.addCallback(this, lockBack); lockBackAdded = true }
+        lockBack.isEnabled = true
+        current?.webView?.onPause()
+        lockScreen.show(title, message, onSwitch)
+    }
+
+    private fun onUnlockSuccess() {
+        if (LockState.appLockNeeded(this)) LockState.unlocked = true
+        else currentProfile?.let { LockState.unlockedProfiles.add(it.id) }
+        enforceLock()
+    }
+
+    private fun switchToOpenProfile() {
+        val other = allProfiles.firstOrNull { it !== currentProfile && !LockState.profileLockNeeded(this, it.id) }
+        if (other == null) { toast("Every other profile is locked too"); return }
+        applyProfile(other)
+    }
+
+    // ── Private profiles and "clear when closed" ─────────────────────────────────
+
+    /**
+     * Private profiles forget everything, and "clear when closed" removes the chosen kinds of data from every profile.
+     * [live] = the app is closing and its WebViews still exist; otherwise this is the next start of the app
+     * (closing the app from the recent-apps list does not tell the app, so the clean-up is repeated at start).
+     */
+    private fun wipeProfiles(live: Boolean, profiles: List<AppProfile> = allProfiles) {
+        val priv = PrivacyPrefs.privateProfiles(this)
+        val auto = PrivacyPrefs.autoClear(this)
+        if (priv.isEmpty() && !auto) return
+        val autoMask = PrivacyPrefs.autoClearMask(this)
+        profiles.forEach { p ->
+            var m = 0
+            if (p.id in priv) m = m or DataWiper.PRIVATE_MASK
+            if (auto) m = m or (autoMask and DataWiper.APP_CACHE.inv())
+            if (m != 0) {
+                val wvs = if (live) allTabs.filter { it.profileId == p.id }.mapNotNull { it.webView } else emptyList()
+                DataWiper.wipe(this, if (profilesSupported) p.webkitProfileName else null, wvs, m, p.id)
+            }
+        }
+        if (auto && autoMask and DataWiper.APP_CACHE != 0) DataWiper.wipe(this, null, emptyList(), DataWiper.APP_CACHE)
+    }
+
+    // ── Links ───────────────────────────────────────────────────────────────────
+
+    /** Tracking parameters removed, then the https upgrade (both are Settings switches). */
+    private fun prepareUrl(tab: Tab, url: String): String = secureUrl(tab, PrivacyPrefs.cleanUrl(this, url))
+
+    private fun secureUrl(tab: Tab, url: String): String {
+        if (!PrivacyPrefs.httpsOnly(this)) return url
+        val u = Uri.parse(url)
+        if (u.scheme != "http") return url
+        val host = u.host ?: return url
+        if (u.port != -1 || PrivacyPrefs.isLocalHost(host) || host in httpAllowed || tab.upgradeCount >= 3) return url
+        tab.upgradedHost = host
+        tab.upgradeCount++
+        return u.buildUpon().scheme("https").build().toString()
+    }
+
+    /** A page wants to open another app (mailto:, tel:, market:, intent: ...). */
+    private fun openExternal(uri: Uri) {
+        val go = {
+            try {
+                val i = if (uri.scheme == "intent") {
+                    // A link must not choose the component or a hidden second intent.
+                    Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME).apply {
+                        addCategory(Intent.CATEGORY_BROWSABLE); component = null; selector = null
+                    }
+                } else Intent(Intent.ACTION_VIEW, uri)
+                startActivity(i)
+            } catch (_: Exception) { toast("No app can open this link") }
+        }
+        if (!PrivacyPrefs.confirmExternal(this)) { go(); return }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Open in another app?")
+            .setMessage("This page wants to open a link in another app:\n\n" + uri.toString().take(140))
+            .setPositiveButton("Open") { _, _ -> go() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // ── Downloads ───────────────────────────────────────────────────────────────
+
+    /** Program files, and downloads that no tap started, are confirmed first (Settings: "Warn before risky downloads"). */
+    private fun guardDownload(tab: Tab, name: String, mime: String?, proceed: () -> Unit) {
+        val risky = PrivacyPrefs.isRiskyFile(name, mime)
+        val byPage = System.currentTimeMillis() - tab.lastTouchAt > 15_000
+        if (!PrivacyPrefs.downloadWarn(this) || (!risky && !byPage)) { proceed(); return }
+        val host = runCatching { Uri.parse(tab.url).host }.getOrNull().orEmpty()
+        val what = if (name.isNotBlank()) name else "a file"
+        MaterialAlertDialogBuilder(this)
+            .setTitle(if (risky) "Download a program file?" else "Allow this download?")
+            .setMessage(
+                (if (byPage) "$host started a download by itself: $what.\n\n" else "$what\n\n") +
+                (if (risky) "This kind of file can install software or harm your phone. Only download it from a site you trust." else "")
+            )
+            .setPositiveButton("Download") { _, _ -> proceed() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** Copied cookies give access to accounts, so the clipboard is emptied after a minute. */
+    private fun scheduleClipboardClear(label: String) {
+        if (!PrivacyPrefs.clipboardClear(this)) return
+        val app = applicationContext
+        Handler(Looper.getMainLooper()).postDelayed({
+            runCatching {
+                val cm = app.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val seen = cm.primaryClipDescription?.label?.toString()
+                // Android 10+ hides the clipboard from an app that is not on screen: then it is simply emptied.
+                if (seen == null || seen == label) {
+                    if (Build.VERSION.SDK_INT >= 28) cm.clearPrimaryClip()
+                    else cm.setPrimaryClip(ClipData.newPlainText("", ""))
+                }
+            }
+        }, 60_000)
+    }
+
+    // ── Site permissions (camera, microphone, location) ──────────────────────────
+
+    /** Asks once per site (the answer is remembered and can be reset in Settings or Menu > Site info). */
+    private fun askSitePermission(host: String, types: List<String>, onResult: (Boolean) -> Unit) {
+        val saved = types.map { PrivacyPrefs.sitePermission(this, host, it) }
+        if (saved.any { it == false }) { onResult(false); return }
+        if (saved.all { it == true }) { requestAndroidPermissions(types, onResult); return }
+        val names = types.joinToString(" and ")
+        var answered = false
+        val answer = { ok: Boolean -> if (!answered) { answered = true; onResult(ok) } }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Allow $host to use your $names?")
+            .setPositiveButton("Allow") { _, _ ->
+                types.forEach { PrivacyPrefs.setSitePermission(this, host, it, true) }
+                requestAndroidPermissions(types) { ok -> answer(ok) }
+            }
+            .setNegativeButton("Block") { _, _ ->
+                types.forEach { PrivacyPrefs.setSitePermission(this, host, it, false) }
+                answer(false)
+            }
+            .setNeutralButton("Only this time") { _, _ -> requestAndroidPermissions(types) { ok -> answer(ok) } }
+            .setOnCancelListener { answer(false) }
+            .show()
+    }
+
+    /** The site may use it; now the phone itself has to allow the app. */
+    private fun requestAndroidPermissions(types: List<String>, onResult: (Boolean) -> Unit) {
+        val needed = types.flatMap {
+            when (it) {
+                PrivacyPrefs.PERM_CAMERA -> listOf(Manifest.permission.CAMERA)
+                PrivacyPrefs.PERM_MIC -> listOf(Manifest.permission.RECORD_AUDIO)
+                else -> listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+        }.filter { androidx.core.content.ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED }
+        val locationOnly = types == listOf(PrivacyPrefs.PERM_LOCATION)
+        val alreadyOk = needed.isEmpty() ||
+            (locationOnly && needed.size < 2)   // fine or coarse is already allowed
+        if (alreadyOk) { onResult(true); return }
+        permCallback?.invoke(false)
+        permCallback = onResult
+        permTypes = types
+        sitePermLauncher.launch(needed.toTypedArray())
+    }
+
+    /** Menu > Site info: address, connection, certificate and what the site may use. */
+    @Suppress("DEPRECATION")
+    private fun showSiteInfo(tab: Tab) {
+        val uri = Uri.parse(tab.url)
+        val host = uri.host
+        if (host == null) { toast("No web page is open"); return }
+        val sb = StringBuilder()
+        sb.append(host).append("\n\n")
+        sb.append(if (uri.scheme == "https") "Connection is secure (HTTPS)." else "Connection is NOT secure (HTTP). Do not enter passwords here.")
+        tab.webView?.certificate?.let { c ->
+            sb.append("\n\nCertificate\nIssued to: ").append(c.issuedTo?.cName.orEmpty())
+            sb.append("\nIssued by: ").append(c.issuedBy?.oName.orEmpty().ifBlank { c.issuedBy?.cName.orEmpty() })
+            sb.append("\nValid until: ").append(c.validNotAfter.orEmpty())
+        }
+        val saved = PrivacyPrefs.siteDecisions(this).firstOrNull { it.first == host.lowercase() }?.second.orEmpty()
+        sb.append("\n\nPermissions\n")
+        if (saved.isEmpty()) sb.append("No saved choices for this site.")
+        else saved.forEach { (t, ok) -> sb.append(t.replaceFirstChar { it.uppercase() }).append(": ").append(if (ok) "allowed" else "blocked").append('\n') }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Site info")
+            .setMessage(sb.toString().trimEnd())
+            .setPositiveButton("Close", null)
+            .apply {
+                if (saved.isNotEmpty()) setNeutralButton("Reset permissions") { _, _ ->
+                    PrivacyPrefs.clearSite(this@MainActivity, host); toast("Permissions reset")
+                }
+            }
+            .show()
+    }
+
     private fun copyLink(tab: Tab) {
         (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-            .setPrimaryClip(ClipData.newPlainText("url", tab.url))
+            .setPrimaryClip(ClipData.newPlainText("url", PrivacyPrefs.cleanUrl(this, tab.url)))
         toast("Link copied")
     }
 
@@ -1866,7 +2389,7 @@ class MainActivity : AppCompatActivity() {
         lastTabOfProfile[tab.profileId] = tab.id
         if (tab.url.isBlank()) tab.homeShown = true    // blank tab = NeZu Space home, nothing to load
         val wv = tab.webView ?: createWebView(tab).also { tab.webView = it }
-        if (!tab.loaded) { tab.loaded = true; if (tab.url.isNotBlank()) wv.loadUrl(tab.url) }
+        if (!tab.loaded) { tab.loaded = true; if (tab.url.isNotBlank()) wv.loadUrl(prepareUrl(tab, tab.url)) }
         b.webContainer.removeAllViews()
         (wv.parent as? ViewGroup)?.removeView(wv)
         b.webContainer.addView(wv,
@@ -2100,15 +2623,32 @@ class MainActivity : AppCompatActivity() {
             displayZoomControls  = false
             useWideViewPort      = true
             loadWithOverviewMode = true
+            // A page must not read the phone's files or other apps' content through the browser.
+            allowFileAccess      = false
+            allowContentAccess   = false
+        }
+        applyWebPrivacy(wv)
+
+        wv.addJavascriptInterface(blobBridge, "NezuBlob")
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            runCatching { WebViewCompat.addDocumentStartJavaScript(wv, DOWNLOAD_NAME_HOOK, setOf("*")) }
         }
 
         wv.setDownloadListener(DownloadListener { url, ua, cd, mime, len ->
-            startDownload(tab, url, ua, cd, mime, len)
+            when {
+                url.startsWith("blob:") -> guardDownload(tab, "", mime) { saveBlob(tab, wv, url, mime) }
+                url.startsWith("data:") -> guardDownload(tab, "", mime) { saveDataUrl(tab, url) }
+                // No file name from the page: the server's own answer is used when the download starts.
+                else -> guardDownload(tab, DownloadEngine.fileNameFor(url, cd, mime), mime) {
+                    startDownload(tab, url, ua, cd.orEmpty(), mime.orEmpty(), len, rename = cd.isNullOrBlank())
+                }
+            }
         })
 
         // Long press on a picture or link opens a menu (like other mobile browsers).
         wv.setOnTouchListener { _, e ->
             if (e.actionMasked == MotionEvent.ACTION_DOWN) { touchX = e.rawX; touchY = e.rawY }
+            tab.lastTouchAt = System.currentTimeMillis()
             false
         }
         wv.setOnLongClickListener { handleWebLongPress(tab, wv) }
@@ -2122,6 +2662,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             override fun onPageFinished(view: WebView, url: String?) {
+                tab.upgradeCount = 0
+                if (url != null) HistoryStore.add(this@MainActivity, tab.profileId, url, view.title)
+                view.evaluateJavascript(DOWNLOAD_NAME_HOOK, null)
                 AdBlocker.hideAdBoxes(view)
                 if (tab === current) { b.progress.visibility = View.INVISIBLE; updateNav() }
                 persist()
@@ -2140,13 +2683,78 @@ class MainActivity : AppCompatActivity() {
                 // Redirects / pop-ups to ad servers that the user did not start are cancelled.
                 if (AdBlocker.enabled && !req.hasGesture() && AdBlocker.isBlockedHost(req.url.host)) return true
                 val scheme = req.url.scheme ?: return false
-                if (scheme in listOf("http", "https", "about", "data", "blob", "javascript")) return false
-                try { startActivity(Intent(Intent.ACTION_VIEW, req.url)) } catch (_: Exception) {}
+                if (scheme == "http" || scheme == "https") {
+                    // Tracking parameters off and http -> https (Settings > Privacy & Security).
+                    if (req.isForMainFrame && req.method == "GET") {
+                        val before = req.url.toString()
+                        val after = prepareUrl(tab, before)
+                        if (after != before) { view.loadUrl(after); return true }
+                    }
+                    return false
+                }
+                if (scheme in listOf("about", "data", "blob", "javascript")) return false
+                openExternal(req.url)
                 return true
+            }
+
+            override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                val errHost = runCatching { Uri.parse(error.url).host }.getOrNull()
+                val pageHost = runCatching { Uri.parse(view.url).host }.getOrNull()
+                if (errHost == null || errHost != pageHost) { handler.cancel(); return }   // pictures / scripts of the page: refuse quietly
+                val reason = when (error.primaryError) {
+                    android.net.http.SslError.SSL_UNTRUSTED -> "The certificate was not issued by an authority this phone trusts."
+                    android.net.http.SslError.SSL_EXPIRED -> "The certificate has expired."
+                    android.net.http.SslError.SSL_IDMISMATCH -> "The certificate belongs to a different website."
+                    android.net.http.SslError.SSL_NOTYETVALID -> "The certificate is not valid yet."
+                    android.net.http.SslError.SSL_DATE_INVALID -> "The date of the certificate is wrong."
+                    else -> "The certificate is not valid."
+                }
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Connection is not private")
+                    .setMessage("$errHost\n\n$reason\n\nPasswords, messages or card numbers you enter here could be stolen.")
+                    .setPositiveButton("Go back") { _, _ -> handler.cancel(); if (view.canGoBack()) view.goBack() }
+                    .setNegativeButton("Continue anyway") { _, _ -> handler.proceed() }
+                    .setOnCancelListener { handler.cancel() }
+                    .show()
+            }
+
+            override fun onReceivedError(view: WebView, req: WebResourceRequest, err: android.webkit.WebResourceError) {
+                if (!req.isForMainFrame) return
+                val upgraded = tab.upgradedHost
+                if (upgraded != null && req.url.host == upgraded && req.url.scheme == "https") {
+                    tab.upgradedHost = null
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle("No secure connection")
+                        .setMessage("$upgraded does not work over HTTPS. With HTTP, others on the network can read and change what you send and receive.")
+                        .setPositiveButton("Cancel", null)
+                        .setNegativeButton("Open with HTTP") { _, _ ->
+                            httpAllowed.add(upgraded)
+                            view.loadUrl(req.url.buildUpon().scheme("http").build().toString())
+                        }
+                        .show()
+                }
             }
         }
 
         wv.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
+                val host = request.origin?.host
+                val types = ArrayList<String>()
+                val res = ArrayList<String>()
+                request.resources.forEach { r ->
+                    when (r) {
+                        android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE -> { types.add(PrivacyPrefs.PERM_CAMERA); res.add(r) }
+                        android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE -> { types.add(PrivacyPrefs.PERM_MIC); res.add(r) }
+                    }
+                }
+                if (host == null || res.isEmpty()) { request.deny(); return }
+                askSitePermission(host, types) { ok -> if (ok) request.grant(res.toTypedArray()) else request.deny() }
+            }
+            override fun onGeolocationPermissionsShowPrompt(origin: String, callback: android.webkit.GeolocationPermissions.Callback) {
+                val host = runCatching { Uri.parse(origin).host }.getOrNull()
+                if (host == null) { callback.invoke(origin, false, false); return }
+                askSitePermission(host, listOf(PrivacyPrefs.PERM_LOCATION)) { ok -> callback.invoke(origin, ok, false) }
+            }
             override fun onShowCustomView(view: View, callback: CustomViewCallback) =
                 enterFullscreen(view, callback)
             override fun onHideCustomView() = exitFullscreen()

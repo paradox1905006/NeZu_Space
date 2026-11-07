@@ -1,0 +1,3 @@
+New Menu > History: search, open, remove
+or clear the pages you visited (per profile).
+Private profiles do not record history.

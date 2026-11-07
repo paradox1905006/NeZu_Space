@@ -1,6 +1,9 @@
 package com.dparadox.tabspace
 
 import android.content.Intent
+import android.util.TypedValue
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
@@ -16,6 +19,7 @@ import androidx.core.view.WindowCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.color.DynamicColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 
@@ -32,13 +36,13 @@ class SettingsActivity : AppCompatActivity() {
     ) { uri: Uri? ->
         uri ?: return@registerForActivityResult
         Thread {
-            val ok = ThemePrefs.importBackground(applicationContext, uri)
+            val ok = ThemePrefs.importBackgroundMedia(applicationContext, uri)
             runOnUiThread {
                 if (ok) {
                     ThemePrefs.applyToWindow(this)
                     refreshBackgroundUi()
                 } else {
-                    Toast.makeText(this, "Could not use that picture", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Could not use that file (pictures, GIFs up to 30 MB and videos up to 150 MB work)", Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
@@ -126,6 +130,9 @@ class SettingsActivity : AppCompatActivity() {
         swAnim.isChecked = ThemePrefs.animations(this)
         swAnim.setOnCheckedChangeListener { _, on -> ThemePrefs.setAnimations(this, on) }
 
+        // ── Privacy & security ───────────────────────────────────────────────
+        setupPrivacy()
+
         // ── Sounds ───────────────────────────────────────────────────────────
         setupSounds()
 
@@ -173,7 +180,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.btnPickBg).setOnClickListener {
-            pickBackground.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            pickBackground.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
         }
         btnRemove.setOnClickListener {
             ThemePrefs.clearBackground(this)
@@ -184,6 +191,10 @@ class SettingsActivity : AppCompatActivity() {
         val swWeb = findViewById<MaterialSwitch>(R.id.switchWebTransparent)
         swWeb.isChecked = ThemePrefs.webTransparent(this)
         swWeb.setOnCheckedChangeListener { _, on -> ThemePrefs.setWebTransparent(this, on) }
+
+        val swVideo = findViewById<MaterialSwitch>(R.id.switchVideoSound)
+        swVideo.isChecked = ThemePrefs.videoSound(this)
+        swVideo.setOnCheckedChangeListener { _, on -> ThemePrefs.setVideoSound(this, on) }
 
         refreshBackgroundUi()
 
@@ -239,7 +250,12 @@ class SettingsActivity : AppCompatActivity() {
 
             val refresh = {
                 val name = SoundFx.customName(this, e)
-                source.text = if (name != null) "Custom: $name" else "Default sound"
+                source.text = when {
+                    name != null -> "Custom: $name"
+                    e.rawRes != null -> "Default sound"
+                    else -> "No sound - tap Choose sound to add yours"
+                }
+                reset.text = if (e.rawRes != null) "Reset" else "Remove"
                 reset.visibility = if (name != null) View.VISIBLE else View.GONE
             }
             soundRows[e] = refresh
@@ -248,7 +264,10 @@ class SettingsActivity : AppCompatActivity() {
             sw.isChecked = SoundFx.eventOn(this, e)
             sw.setOnCheckedChangeListener { _, on -> SoundFx.setEventOn(this, e, on) }
 
-            row.findViewById<View>(R.id.btnSoundPreview).setOnClickListener { SoundFx.preview(this, e) }
+            row.findViewById<View>(R.id.btnSoundPreview).setOnClickListener {
+                if (SoundFx.hasSound(this, e)) SoundFx.preview(this, e)
+                else Toast.makeText(this, "Choose a sound first", Toast.LENGTH_SHORT).show()
+            }
             row.findViewById<View>(R.id.btnSoundChoose).setOnClickListener {
                 pickingFor = e
                 pickSound.launch("audio/*")
@@ -267,9 +286,206 @@ class SettingsActivity : AppCompatActivity() {
         applyMaster()
     }
 
+    override fun onStart() {
+        super.onStart()
+        LockState.onStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The app lock also protects this screen: when the lock is due, go back and let the browser screen ask.
+        if (LockState.appLockNeeded(this)) { finish(); return }
+        if (PrivacyPrefs.secureScreen(this) || PrivacyPrefs.appLock(this))
+            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
     override fun onStop() {
         SoundFx.stopAll()   // a preview must not keep playing after leaving Settings
+        LockState.onStop()
         super.onStop()
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  Privacy & security
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private fun setupPrivacy() {
+        val list = findViewById<LinearLayout>(R.id.privacyList)
+        val dp = resources.displayMetrics.density
+        var firstHeader = true
+
+        fun header(text: String) {
+            list.addView(TextView(this).apply {
+                this.text = text
+                textSize = 12f
+                letterSpacing = 0.08f
+                setTextColor(com.google.android.material.color.MaterialColors.getColor(
+                    this, com.google.android.material.R.attr.colorPrimary))
+                setPadding(0, ((if (firstHeader) 0 else 18) * dp).toInt(), 0, (2 * dp).toInt())
+            })
+            firstHeader = false
+        }
+
+        /** A row with a switch. [onToggle] returns false to refuse the change (the switch jumps back). */
+        fun switchRow(title: String, hint: String, checked: Boolean, onToggle: (Boolean) -> Boolean) {
+            val row = layoutInflater.inflate(R.layout.item_pref_row, list, false)
+            row.findViewById<TextView>(R.id.tvPrefTitle).text = title
+            row.findViewById<TextView>(R.id.tvPrefHint).text = hint
+            val sw = row.findViewById<MaterialSwitch>(R.id.switchPref)
+            sw.isChecked = checked
+            var reverting = false
+            sw.setOnCheckedChangeListener { _, on ->
+                if (reverting) return@setOnCheckedChangeListener
+                if (!onToggle(on)) { reverting = true; sw.isChecked = !on; reverting = false }
+            }
+            row.setOnClickListener { sw.toggle() }
+            list.addView(row)
+        }
+
+        /** A row that opens a dialog. [value] is shown under the title and is read again after [onClick] calls its argument. */
+        fun actionRow(title: String, value: () -> String, onClick: (refresh: () -> Unit) -> Unit) {
+            val row = layoutInflater.inflate(R.layout.item_pref_row, list, false)
+            row.findViewById<TextView>(R.id.tvPrefTitle).text = title
+            val hint = row.findViewById<TextView>(R.id.tvPrefHint)
+            hint.text = value()
+            row.findViewById<View>(R.id.switchPref).visibility = View.GONE
+            val tv = TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
+            row.setBackgroundResource(tv.resourceId)
+            row.setOnClickListener { onClick { hint.text = value() } }
+            list.addView(row)
+        }
+
+        fun noScreenLock(): Boolean {
+            if (LockScreen.available(this)) return false
+            Toast.makeText(this, "Set a screen lock (PIN, pattern, password or fingerprint) in your phone's Settings first", Toast.LENGTH_LONG).show()
+            return true
+        }
+
+        // ── Lock ─────────────────────────────────────────────────────────────
+        header("LOCK AND SCREEN")
+        switchRow("App lock", "Ask for fingerprint, face or phone lock when the app opens",
+            PrivacyPrefs.appLock(this)) { on ->
+            if (on && noScreenLock()) false else { PrivacyPrefs.setAppLock(this, on); true }
+        }
+        val delays = longArrayOf(0L, 30_000L, 120_000L, 600_000L)
+        val delayNames = arrayOf("Immediately", "After 30 seconds", "After 2 minutes", "After 10 minutes")
+        actionRow("Lock again", { delayNames[delays.indexOf(PrivacyPrefs.lockDelayMs(this)).coerceAtLeast(0)] }) { refresh ->
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Lock again after leaving the app")
+                .setSingleChoiceItems(delayNames, delays.indexOf(PrivacyPrefs.lockDelayMs(this)).coerceAtLeast(0)) { d, i ->
+                    PrivacyPrefs.setLockDelayMs(this, delays[i]); refresh(); d.dismiss()
+                }
+                .setNegativeButton("Cancel", null).show()
+        }
+        actionRow("Locked profiles", {
+            val n = PrivacyPrefs.lockedProfiles(this).size
+            if (n == 0) "None. A locked profile asks for unlock before it opens." else "$n locked"
+        }) { refresh ->
+            if (!noScreenLock()) pickProfiles("Locked profiles", PrivacyPrefs.lockedProfiles(this),
+                { PrivacyPrefs.setLockedProfiles(this, it) }, refresh)
+        }
+        switchRow("Hide screen in recent apps", "Blocks screenshots and shows a blank picture in the recent-apps list. Always on when the app lock or a locked or private profile is used",
+            PrivacyPrefs.secureScreen(this)) { on ->
+            PrivacyPrefs.setSecureScreen(this, on)
+            if (on) window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+            else if (!PrivacyPrefs.appLock(this)) window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            true
+        }
+
+        // ── Private browsing ─────────────────────────────────────────────────
+        header("PRIVATE BROWSING")
+        actionRow("Private profiles", {
+            val n = PrivacyPrefs.privateProfiles(this).size
+            if (n == 0) "None. A private profile forgets cookies, storage, cache and history when the app is closed." else "$n private"
+        }) { refresh ->
+            pickProfiles("Private profiles", PrivacyPrefs.privateProfiles(this),
+                { PrivacyPrefs.setPrivateProfiles(this, it) }, refresh)
+        }
+        switchRow("Clear data when the app closes", "Removes the data chosen below from every profile",
+            PrivacyPrefs.autoClear(this)) { on -> PrivacyPrefs.setAutoClear(this, on); true }
+        actionRow("What to clear", {
+            val m = PrivacyPrefs.autoClearMask(this)
+            val names = DataWiper.BITS.indices.filter { m and DataWiper.BITS[it] != 0 }.map { DataWiper.LABELS[it].substringBefore(" (") }
+            if (names.isEmpty()) "Nothing selected" else names.joinToString(", ")
+        }) { refresh ->
+            val m = PrivacyPrefs.autoClearMask(this)
+            val checked = BooleanArray(DataWiper.BITS.size) { m and DataWiper.BITS[it] != 0 }
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Clear when the app closes")
+                .setMultiChoiceItems(DataWiper.LABELS, checked) { _, i, on -> checked[i] = on }
+                .setPositiveButton("Save") { _, _ ->
+                    var mask = 0
+                    checked.forEachIndexed { i, on -> if (on) mask = mask or DataWiper.BITS[i] }
+                    PrivacyPrefs.setAutoClearMask(this, mask); refresh()
+                }
+                .setNegativeButton("Cancel", null).show()
+        }
+
+        // ── Web ──────────────────────────────────────────────────────────────
+        header("WEB")
+        switchRow("Remove tracking from links", "Strips utm_, fbclid, gclid and similar parameters. Copy link gives the clean link",
+            PrivacyPrefs.stripTracking(this)) { on -> PrivacyPrefs.setStripTracking(this, on); true }
+        switchRow("Block trackers", "Blocks analytics and tracking hosts, next to the ad blocker. A few sites may break",
+            PrivacyPrefs.blockTrackers(this)) { on -> PrivacyPrefs.setBlockTrackers(this, on); true }
+        switchRow("Block third-party cookies", "Cookies that come from a site other than the page you are on",
+            PrivacyPrefs.blockThirdPartyCookies(this)) { on -> PrivacyPrefs.setBlockThirdPartyCookies(this, on); true }
+        switchRow("HTTPS only", "Opens http links as https. If a site has no https, you are asked first",
+            PrivacyPrefs.httpsOnly(this)) { on -> PrivacyPrefs.setHttpsOnly(this, on); true }
+        switchRow("Safe Browsing", "Warns about phishing and malware pages (needs Google Play services)",
+            PrivacyPrefs.safeBrowsing(this)) { on -> PrivacyPrefs.setSafeBrowsing(this, on); true }
+        switchRow("Ask before opening other apps", "A page cannot open another app (mail, maps, stores) without your OK",
+            PrivacyPrefs.confirmExternal(this)) { on -> PrivacyPrefs.setConfirmExternal(this, on); true }
+        actionRow("Site permissions", {
+            val n = PrivacyPrefs.siteDecisions(this).size
+            if (n == 0) "Camera, microphone and location choices for sites. Nothing saved yet" else "$n sites with saved choices"
+        }) { refresh -> showSitePermissions(refresh) }
+
+        // ── Downloads and data ───────────────────────────────────────────────
+        header("DOWNLOADS AND DATA")
+        switchRow("Warn before risky downloads", "Asks before program files (apk, exe ...) and before downloads that no tap started",
+            PrivacyPrefs.downloadWarn(this)) { on -> PrivacyPrefs.setDownloadWarn(this, on); true }
+        switchRow("Clear clipboard after copying cookies", "Empties the clipboard one minute after Copy cookies",
+            PrivacyPrefs.clipboardClear(this)) { on -> PrivacyPrefs.setClipboardClear(this, on); true }
+        switchRow("Encrypt saved data", "Tabs, profiles, shortcuts and the download list are stored encrypted, with a key that stays in this phone's Keystore. Pictures and downloaded files are not encrypted",
+            PrivacyPrefs.encryptData(this)) { on -> PrivacyPrefs.setEncryptData(this, on); true }
+    }
+
+    /** Pick profiles from a list; [refresh] updates the row text afterwards. */
+    private fun pickProfiles(title: String, current: Set<String>, save: (Set<String>) -> Unit, refresh: () -> Unit) {
+        val profiles = TabStore(this).load().profiles
+        if (profiles.isEmpty()) { Toast.makeText(this, "No profiles yet", Toast.LENGTH_SHORT).show(); return }
+        val names = profiles.map { it.name }.toTypedArray()
+        val checked = BooleanArray(profiles.size) { profiles[it].id in current }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setMultiChoiceItems(names, checked) { _, i, on -> checked[i] = on }
+            .setPositiveButton("Save") { _, _ ->
+                val ids = profiles.indices.filter { checked[it] }.map { profiles[it].id }.toSet()
+                save(ids); refresh()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showSitePermissions(refresh: () -> Unit) {
+        val items = PrivacyPrefs.siteDecisions(this)
+        if (items.isEmpty()) { Toast.makeText(this, "No saved choices yet", Toast.LENGTH_SHORT).show(); return }
+        val labels = items.map { (host, m) ->
+            host + "\n" + m.entries.joinToString(", ") { (t, ok) ->
+                t.replaceFirstChar { it.uppercase() } + ": " + (if (ok) "allowed" else "blocked")
+            }
+        }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Tap a site to reset it")
+            .setItems(labels) { _, i ->
+                PrivacyPrefs.clearSite(this, items[i].first); refresh()
+                Toast.makeText(this, "Reset", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("Reset all") { _, _ -> PrivacyPrefs.clearAllSites(this); refresh() }
+            .setNegativeButton("Close", null)
+            .show()
     }
 
     private fun refreshBackgroundUi() {
@@ -278,5 +494,8 @@ class SettingsActivity : AppCompatActivity() {
         tvNoPicture.visibility = if (bmp == null) View.VISIBLE else View.GONE
         btnRemove.isEnabled = bmp != null
         slider.isEnabled = bmp != null
+        // The sound switch only matters for a video (the preview above shows its first frame).
+        findViewById<View>(R.id.rowVideoSound).visibility =
+            if (ThemePrefs.bgType(this) == ThemePrefs.TYPE_VIDEO) View.VISIBLE else View.GONE
     }
 }

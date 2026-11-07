@@ -6,16 +6,21 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ImageDecoder
 import android.graphics.Matrix
+import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LayerDrawable
+import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.graphics.ColorUtils
 import androidx.exifinterface.media.ExifInterface
 import com.google.android.material.color.MaterialColors
 import java.io.File
+import java.util.WeakHashMap
 import kotlin.math.max
 
 /**
@@ -87,8 +92,96 @@ object ThemePrefs {
     fun setWebTransparent(c: Context, on: Boolean) =
         p(c).edit().putBoolean("web_transparent", on).apply()
 
+    /** The still picture: the picture itself, or the first frame of a GIF / video. Everything that needs "a picture" uses this. */
     fun bgFile(c: Context) = File(c.filesDir, "app_background.jpg")
     fun hasBackground(c: Context) = bgFile(c).exists()
+
+    // Moving backgrounds: an animated GIF, or a looping video.
+    const val TYPE_IMAGE = "image"
+    const val TYPE_GIF = "gif"
+    const val TYPE_VIDEO = "video"
+
+    fun gifFile(c: Context) = File(c.filesDir, "app_background.gif")
+    fun videoFile(c: Context) = File(c.filesDir, "app_background.mp4")
+
+    fun bgType(c: Context): String = if (!hasBackground(c)) TYPE_IMAGE else p(c).getString("bg_type", TYPE_IMAGE) ?: TYPE_IMAGE
+    private fun setBgType(c: Context, type: String) = p(c).edit().putString("bg_type", type).apply()
+
+    /** Sound of the background video. Off by default. */
+    fun videoSound(c: Context) = p(c).getBoolean("bg_video_sound", false)
+    fun setVideoSound(c: Context, on: Boolean) = p(c).edit().putBoolean("bg_video_sound", on).apply()
+
+    private const val MAX_GIF_BYTES = 30L * 1024 * 1024
+    private const val MAX_VIDEO_BYTES = 150L * 1024 * 1024
+
+    /** Picture, GIF or video picked in Settings. Returns false when it cannot be used. */
+    fun importBackgroundMedia(c: Context, uri: Uri): Boolean {
+        val mime = c.contentResolver.getType(uri).orEmpty()
+        return when {
+            mime == "image/gif" -> importGif(c, uri)
+            mime.startsWith("video/") -> importVideo(c, uri)
+            else -> importBackground(c, uri).also { ok ->
+                if (ok) { gifFile(c).delete(); videoFile(c).delete(); setBgType(c, TYPE_IMAGE) }
+            }
+        }
+    }
+
+    private fun copyLimited(c: Context, uri: Uri, dest: File, maxBytes: Long): Boolean {
+        val tmp = File(dest.path + ".tmp")
+        return try {
+            var total = 0L
+            val input = c.contentResolver.openInputStream(uri) ?: return false
+            input.use { ins ->
+                tmp.outputStream().use { out ->
+                    val buf = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = ins.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > maxBytes) return false
+                        out.write(buf, 0, n)
+                    }
+                }
+            }
+            dest.delete()
+            tmp.renameTo(dest)
+        } catch (_: Exception) {
+            false
+        } finally {
+            tmp.delete()
+        }
+    }
+
+    private fun importGif(c: Context, uri: Uri): Boolean {
+        if (!copyLimited(c, uri, gifFile(c), MAX_GIF_BYTES)) return false
+        // The first frame becomes the still picture (used where nothing can animate).
+        if (!importBackground(c, uri)) { gifFile(c).delete(); return false }
+        videoFile(c).delete()
+        setBgType(c, TYPE_GIF)
+        return true
+    }
+
+    private fun importVideo(c: Context, uri: Uri): Boolean {
+        val tmp = File(c.filesDir, "app_background_new.mp4")
+        if (!copyLimited(c, uri, tmp, MAX_VIDEO_BYTES)) return false
+        val frame: Bitmap? = try {
+            val r = MediaMetadataRetriever()
+            try {
+                r.setDataSource(tmp.path)
+                r.getFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC) ?: r.getFrameAtTime(0L)
+            } finally { runCatching { r.release() } }
+        } catch (_: Exception) { null }
+        if (frame == null) { tmp.delete(); return false }
+        val saved = runCatching { bgFile(c).outputStream().use { frame.compress(Bitmap.CompressFormat.JPEG, 90, it) } }
+            .getOrDefault(false)
+        if (!saved) { tmp.delete(); return false }
+        videoFile(c).delete()
+        if (!tmp.renameTo(videoFile(c))) { tmp.delete(); return false }
+        gifFile(c).delete()
+        cacheKey = null; cacheBmp = null
+        setBgType(c, TYPE_VIDEO)
+        return true
+    }
 
     private var cacheKey: String? = null
     private var cacheBmp: Bitmap? = null
@@ -128,6 +221,9 @@ object ThemePrefs {
 
     fun clearBackground(c: Context) {
         bgFile(c).delete()
+        gifFile(c).delete()
+        videoFile(c).delete()
+        setBgType(c, TYPE_IMAGE)
         cacheKey = null; cacheBmp = null
     }
 
@@ -161,22 +257,73 @@ object ThemePrefs {
      * at the chosen opacity. Status/navigation bars become transparent so the picture
      * runs behind them too. Call from onCreate/onResume and whenever the slider moves.
      */
-    fun applyToWindow(a: Activity) {
+    fun applyToWindow(a: Activity, videoOverlay: Boolean = false) {
         val surface = MaterialColors.getColor(a, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         val bars = MaterialColors.getColor(a, com.google.android.material.R.attr.colorSurfaceContainer, surface)
         val dm = a.resources.displayMetrics
         val bmp = screenBitmap(a, dm.widthPixels, dm.heightPixels)
 
         if (bmp == null) {
+            gifOwners.remove(a)
             a.window.setBackgroundDrawable(ColorDrawable(surface))
             a.window.statusBarColor = surface
             a.window.navigationBarColor = bars
             return
         }
+        val type = bgType(a)
+
+        // Video: the window keeps only the plain colour, VideoBackground draws the moving picture above it.
+        if (type == TYPE_VIDEO && videoOverlay && videoFile(a).exists()) {
+            gifOwners.remove(a)
+            a.window.setBackgroundDrawable(ColorDrawable(surface))
+            a.window.statusBarColor = Color.TRANSPARENT
+            a.window.navigationBarColor = Color.TRANSPARENT
+            return
+        }
+
+        // Animated GIF (Android 9+): an animated drawable is the window background.
+        if (type == TYPE_GIF && Build.VERSION.SDK_INT >= 28 && gifFile(a).exists()) {
+            val key = gifFile(a).lastModified().toString()
+            val owned = gifOwners[a]
+            if (owned != null && owned.first == key) {          // same GIF: only the opacity may have changed
+                owned.second.alpha = opacity(a) * 255 / 100
+            } else {
+                val anim = gifDrawable(a)
+                if (anim != null) {
+                    a.window.setBackgroundDrawable(LayerDrawable(arrayOf(ColorDrawable(surface), anim)))
+                    gifOwners[a] = key to anim
+                }
+            }
+            if (gifOwners[a] != null) {
+                a.window.statusBarColor = Color.TRANSPARENT
+                a.window.navigationBarColor = Color.TRANSPARENT
+                return
+            }
+        }
+
+        gifOwners.remove(a)
         val pic = BitmapDrawable(a.resources, bmp).apply { alpha = opacity(a) * 255 / 100 }
         a.window.setBackgroundDrawable(LayerDrawable(arrayOf(ColorDrawable(surface), pic)))
         a.window.statusBarColor = Color.TRANSPARENT
         a.window.navigationBarColor = Color.TRANSPARENT
+    }
+
+    /** The GIF drawable each screen currently shows (decoding is slow, so slider moves only change its opacity). */
+    private val gifOwners = WeakHashMap<Activity, Pair<String, CenterCropDrawable>>()
+
+    @androidx.annotation.RequiresApi(28)
+    private fun gifDrawable(a: Activity): CenterCropDrawable? = try {
+        val d = ImageDecoder.decodeDrawable(ImageDecoder.createSource(gifFile(a))) { decoder, info, _ ->
+            val longSide = max(info.size.width, info.size.height)
+            if (longSide > 1080) decoder.setTargetSampleSize((longSide + 1079) / 1080)   // keep memory reasonable
+        }
+        if (d is AnimatedImageDrawable) {
+            d.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+            d.start()
+        }
+        CenterCropDrawable(d).apply { alpha = opacity(a) * 255 / 100 }
+    } catch (_: Throwable) {
+        null
     }
 
     /** Makes a bar/sheet colour slightly see-through when a picture is set, so the picture shows. */

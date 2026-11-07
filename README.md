@@ -1,57 +1,101 @@
-# NezU Space
+# NeZu Space
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-Multi-tab browser where every tab is an isolated browser (own cookies, storage, cache, history).
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF)
 
-1. Android Studio (Koala+) -> File > Open -> this folder, wait for Gradle sync.
-2. Build > Build Bundle(s) / APK(s) > Build APK(s)
-   - debug APK:   app/build/outputs/apk/debug/app-debug.apk
-   - release APK: ./gradlew assembleRelease  (signed with the debug key so it installs directly)
-3. Change the home page in MainActivity.kt -> HOME_URL.
+**A multi-tab Android browser where every tab and profile is isolated.**
+Each profile has its own cookies, storage, cache, search engine, home shortcuts and downloads, so logins and sessions never mix.
 
-Isolation uses the WebView multi-profile API (needs a recent Android System WebView, v110+).
+**Author:** D.Paradox - Telegram: [@Parad0x1905006](https://t.me/Parad0x1905006)
 
-## v3.0 — Appearance & Help
-- **Settings → Appearance**: System / Light / Dark theme and **Material You** (wallpaper colours, Android 12+) switch. UI is Material 3.
-- **Settings → Background picture**: choose any image, adjust its opacity with a slider (live preview), remove it any time. The picture is copied into app storage, so it survives the original being deleted. Optional "Show behind web pages" for pages with no background of their own.
-- **Settings → How to use NeZu Space**: expandable guide (tabs, profiles, bookmarks, downloads, cookies, theme, troubleshooting). Edit the text in `GuideActivity.kt` (`topics` list).
-- Code: `ThemePrefs.kt` (all appearance logic), `GuideActivity.kt`, `SettingsActivity.kt`.
-- `buildConfig = true` added to `app/build.gradle.kts` (AGP 8 disables BuildConfig by default; Settings reads the version from it).
+## Screenshots
 
-## v3.1 — Home, swipe and animations
-- **Home screen**: Home button in the bottom bar opens the NeZu Space home. The + tile adds a shortcut (name + address); Menu → Add to Home saves the current page. Tiles show the site logo (cached in app storage) and name. Long-press to edit or remove. Shortcuts belong to a profile; the background picture shows behind the home screen. Old per-tab bookmarks are merged into their profile on first start.
-- **Search engine is per profile** (Menu → Search engine), not per tab. Old per-tab choices are migrated.
-- **Downloads**: tap an entry for Open, Copy download link, Download again, Delete file, Remove from list.
-- **Gestures**: swipe the address bar to change tab, swipe the bottom bar to change profile, swipe a tab card or profile row to close/delete it.
-- **Animations** (Settings → Appearance → Animations, on by default): book page turn for tab/profile change, dust for close/delete, reverse dust for new tab/profile. Code: `DustView.kt`, `flipPage / dustOutPage / dustInPage / dustOutView` in `MainActivity.kt`.
-- **Profile switch lag**: WebViews of other profiles are pre-created while the app is idle, saving is debounced, and heavy work runs under the animation.
-- All emoji removed from the UI.
+<table>
+<tr>
+  <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg" width="190" alt="Home screen"><br><sub>Home screen</sub></td>
+  <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg" width="190" alt="Menu"><br><sub>Menu</sub></td>
+  <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" width="190" alt="Profiles"><br><sub>Profiles</sub></td>
+</tr>
+<tr>
+  <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" width="190" alt="Settings"><br><sub>Settings</sub></td>
+  <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg" width="190" alt="In-app guide"><br><sub>In-app guide</sub></td>
+</tr>
+</table>
 
-## v3.5 - Shortcut pictures, crop, long-press menus, Don't sleep
+## Features
 
-### Home shortcut pictures
-- Adding a shortcut now takes the **picture of the website**: the page is read and the best picture is used (touch icon / large logo, then the biggest icon, `/favicon.ico`, the social-share picture, Google's icon service). The picture fills the round tile; tiny favicons sit in the middle. Old tiles that still hold a small icon look once for a better one.
-- **Own picture**: Add / Edit shortcut has *Choose own image* and *Use website image*. Code: `FaviconStore.kt`, `Net.kt`, `HomeAdapter.kt`, `showBookmarkDialog` in `MainActivity.kt`; `Bookmark.iconUri` is saved by `TabStore.kt`.
+### Tabs and profiles
+- Isolated profiles through the WebView multi-profile API (needs Android System WebView 110 or newer).
+- Swipe the address bar to change tab, swipe the bottom bar to change profile, swipe a tab card or profile row to close or delete it.
+- Pin tabs; give tabs and profiles a name, colour or round picture (with a crop screen).
+- Search engine per profile.
+- Tab-count badge that shows the total tabs of the current profile.
 
-### Crop screen (profile picture, tab avatar, shortcut picture)
-- Every picture you choose goes through `CropActivity.kt`: move and zoom the picture under a round window to select any part, rotate 90 degrees, flip, then tap the check button. The result is saved as a **round** 512 x 512 PNG in app storage (`files/avatars`), so it stays round and survives the original being deleted. Replaced pictures are deleted.
+### Home screen
+- Native home with shortcut tiles that show the website's picture (touch icon, logo, favicon or your own image).
+- Add a page with Menu > Add to Home, or pin a shortcut to the phone's home screen.
+- Long-press a tile: open in background / new tab, sort, edit, delete, copy link, share.
 
-### Long-press menus
-- **Home shortcut**: Open in background, Open in new tab, Sort (name A-Z / Z-A, oldest / newest), Edit, Delete, Copy link, Share.
-- **Picture in a web page** (for example image search results): View image, Download image, Share image (the picture itself), Search by image (Google Lens), Open link in new tab (when the picture is a link), Copy image link, Page info, Mark as ad (hides the picture and blocks that picture from now on).
-- **Link in a web page**: Open in new tab, Open in background, Copy link, Share link.
-- Not included: Picture mode, Scan QR code, Customize menu.
-- Code: `showTileMenu`, `handleWebLongPress`, `showImageMenu`, `showLinkMenu`, `downloadImage`, `shareImage`, `markAsAd` in `MainActivity.kt`; `AdBlocker.markUrl`. `file_paths.xml` has a cache path for sharing.
+### Downloads
+- Per-profile download list with pause and resume, add a download by pasting a link, open, copy link, download again, delete.
+- Files keep the real name the website gives them; downloads from sites that need a login work (profile cookies and referer are sent); `blob:` and `data:` links are supported.
+- Long-press a picture in a page: view, download, share, search by image, copy link, mark as ad.
 
-### Don't sleep (Settings)
-- Off, Always on (while the app is open), or 5 / 15 / 30 minutes. For minutes, the screen stays on until that time has passed **without a touch**; every touch restarts the timer. It only works while NeZu Space is in the foreground. Fullscreen video keeps the screen on as before. Code: `applyKeepAwake`, `onUserInteraction` in `MainActivity.kt`, `ThemePrefs.keepAwake`.
+### Look
+- Material 3 with Material You colours, light / dark / system theme.
+- Background: your own picture, an animated GIF or a looping video, with adjustable opacity and an optional video sound.
+- Page-turn and dust animations for changing, closing and creating tabs and profiles (can be switched off).
+- Sound effects with a master switch, a preview and your own audio for each event (tab/profile change, delete, create, app open).
 
-## v3.8 - Sounds
-- **Settings -> Sounds**: master switch plus four sounds (tab/profile change, tab/profile delete, new tab/profile, app open). Each has its own on/off switch, Preview, Choose sound (your own audio, up to 15 s / 5 MB) and Reset. Defaults are in `app/src/main/res/raw`.
-- Code: `SoundFx.kt` (playback, settings, custom files), hooks in `flipPage / dustOutPage / dustInPage / dustOutView` in `MainActivity.kt`, UI in `SettingsActivity.setupSounds` and `item_sound.xml`.
+### Privacy and security (Settings > Privacy & Security)
+- App lock (fingerprint, face or phone lock), locked profiles, hidden screen in recent apps.
+- Private profiles and "clear data when the app closes".
+- Tracking removed from links, tracker blocking, third-party cookie blocking, HTTPS only, Safe Browsing.
+- Asks before opening other apps; warns before risky or self-started downloads; certificate-error warning page.
+- Camera, microphone and location are asked once per site and can be reset any time.
+- Tabs, profiles, shortcuts and the download list are stored encrypted with a key in the Android Keystore.
+- Menu > Site info shows the connection and certificate of the page.
+- No account, no analytics, no tracking. See [PRIVACY.md](PRIVACY.md).
+
+### Menu tools
+- History (per profile, searchable), Cookies (copy / clear), Clear data (choose Cache, Form data, History, Web storage, Cookies, App cache), Downloads, Site info.
+- "Don't sleep": keep the screen on always or for 5 / 15 / 30 minutes without a touch.
+- Built-in ad blocker.
+- An in-app guide: Settings > How to use NeZu Space.
+
+## Requirements
+- Android 8.0 (API 26) or newer.
+- Android System WebView 110 or newer for isolated profiles.
+- Safe Browsing needs Google Play services.
+
+## Build
+1. Install Android Studio (Koala or newer), choose *File > Open*, select this folder and wait for the Gradle sync (internet needed).
+2. Debug APK: *Build > Build APK(s)*, or `./gradlew assembleDebug` -> `app/build/outputs/apk/debug/app-debug.apk`.
+3. Release APK: `./gradlew assembleRelease`. The release build is signed with the debug key so it installs directly; use your own signing config before publishing.
+
+## Project layout
+| Path (`app/src/main/java/com/dparadox/tabspace`) | What it does |
+|---|---|
+| `MainActivity.kt` | Browser screen: tabs, profiles, menus, WebView clients, animations |
+| `SettingsActivity.kt`, `GuideActivity.kt` | Settings and the in-app guide (edit the `topics` list) |
+| `PrivacyPrefs.kt`, `LockScreen.kt`, `DataWiper.kt`, `SecureStore.kt` | Privacy settings, app lock, data clearing, encryption |
+| `TabStore.kt`, `HistoryStore.kt` | Saved tabs / profiles and the history list |
+| `DownloadEngine.kt`, `BlobBridge.kt`, `DownloadService.kt` | Downloads |
+| `ThemePrefs.kt`, `VideoBackground.kt`, `CenterCropDrawable.kt` | Theme and picture / GIF / video background |
+| `SoundFx.kt` | Sound effects |
+| `AdBlocker.kt` | Ad and tracker blocking |
+
+Store text and the icon for F-Droid are in `fastlane/metadata/android/en-US`.
+
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md). Version history: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
-Source code: MIT, see [LICENSE](LICENSE). Libraries (AndroidX, Material Components, WebKit) are Apache 2.0.
-The default sound files in `res/raw` are separate assets: they are only covered by the MIT license if their author is the copyright holder. Replace them with sounds you own or with CC0 / permissively licensed ones before publishing (for example to F-Droid).
+NeZu Space is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License v3.0 or later** (see [LICENSE](LICENSE)). It comes without any warranty.
 
-Store text and the icon for F-Droid are in `fastlane/metadata/android/en-US`. See also [CHANGELOG](CHANGELOG.md), [PRIVACY](PRIVACY.md) and [CONTRIBUTING](CONTRIBUTING.md).
+    Copyright (C) 2026 D.Paradox
+
+Libraries (AndroidX, Material Components, WebKit, Biometric) are Apache 2.0, which is compatible with GPLv3.
+
+The default *App open* sound in `app/src/main/res/raw` is a separate asset: it is only covered by the GPL if its author is the copyright holder. Replace it with a sound you own, or a CC0 / permissively licensed one, before publishing (for example to F-Droid).

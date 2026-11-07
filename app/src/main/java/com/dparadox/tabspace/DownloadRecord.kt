@@ -21,6 +21,8 @@ class DownloadRecord(
     @Volatile var mimeType: String = "",
     @Volatile var downloadedBytes: Long = 0L,
     var userAgent: String = "",
+    /** Page the download was started from; some sites (Claude, Cloudflare) refuse downloads without it. */
+    var referer: String = "",
 ) {
     /** Bytes per second, only while running. Not saved. */
     @Volatile var speed: Long = 0L
@@ -35,7 +37,7 @@ class DownloadRecord(
         .put("url", url).put("totalBytes", totalBytes)
         .put("addedAt", addedAt).put("status", status)
         .put("filePath", filePath ?: "").put("mimeType", mimeType)
-        .put("downloaded", downloadedBytes).put("ua", userAgent)
+        .put("downloaded", downloadedBytes).put("ua", userAgent).put("ref", referer)
 
     companion object {
         /** The download finished earlier but the file is gone from the phone. */
@@ -53,6 +55,7 @@ class DownloadRecord(
             mimeType = d.optString("mimeType", ""),
             downloadedBytes = d.optLong("downloaded", 0),
             userAgent = d.optString("ua", ""),
+            referer = d.optString("ref", ""),
         )
     }
 }

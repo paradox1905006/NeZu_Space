@@ -17,7 +17,8 @@ PRIVACY POLICY
 • Your tabs, profiles, bookmarks, home shortcuts, settings, cookies and download list are stored only on your phone. Each profile keeps its own cookies and logins.
 • The websites you visit can collect data as usual (for example through cookies). Use profiles and the cookie settings to control this.
 • To show a site's logo on the home screen, the app asks Google's favicon service for the logo of that site's address.
-• Permissions: Internet (to browse), Notifications (download progress) and a foreground service (to keep downloads running). Uploading a file to a website uses Android's own file picker, so the app does not need access to all your files.
+• Permissions: Internet (to browse), Notifications (download progress) and a foreground service (to keep downloads running). Camera, Microphone and Location are only asked for when a website you allowed wants to use them; you can reset your choices in Settings > Privacy & Security. Uploading a file to a website uses Android's own file picker, so the app does not need access to all your files.
+• Your history list is kept per profile on your phone only; private profiles do not record it. Settings > Privacy & Security has an app lock, private profiles, tracker and cookie blocking, HTTPS only and encrypted storage of your tabs and profiles.
 • You can delete your data at any time with the clear-data option in Settings or by uninstalling the app.
 
 Tap "I agree" to continue."""

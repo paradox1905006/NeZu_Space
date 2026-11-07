@@ -46,6 +46,9 @@ object DownloadEngine {
     /** Called on the main thread when a download changes state (finished, paused, failed). */
     @Volatile var listener: (() -> Unit)? = null
 
+    /** Gives the cookies of the profile that owns a download (the default WebView cookie jar is the wrong one). */
+    @Volatile var cookieProvider: ((DownloadRecord) -> String?)? = null
+
     private class Job(val rec: DownloadRecord, val cookie: String, @Volatile var rename: Boolean) {
         @Volatile var pause = false
         @Volatile var cancel = false
@@ -104,7 +107,8 @@ object DownloadEngine {
     fun start(rec: DownloadRecord, rename: Boolean = false) {
         if (!rec.isEngine || jobs.containsKey(rec.id)) return
         live[rec.id] = rec
-        val cookie = runCatching { CookieManager.getInstance().getCookie(rec.url) }.getOrNull().orEmpty()
+        val cookie = (runCatching { cookieProvider?.invoke(rec) }.getOrNull()
+            ?: runCatching { CookieManager.getInstance().getCookie(rec.url) }.getOrNull()).orEmpty()
         val job = Job(rec, cookie, rename)
         jobs[rec.id] = job
         rec.status = DownloadManager.STATUS_RUNNING
@@ -187,14 +191,64 @@ object DownloadEngine {
             val seg = runCatching { Uri.parse(url).lastPathSegment }.getOrNull().orEmpty()
             if (seg.contains('.') && !seg.endsWith(".")) name = seg
         }
-        var n = name?.substringAfterLast('/')?.substringAfterLast('\\')
-            ?.replace(Regex("[:*?\"<>|]"), "_")?.trim().orEmpty()
+        val fromHeader = !name.isNullOrBlank() && cd.contains("filename", ignoreCase = true)
+        var n = cleanFileName(name.orEmpty())
         if (n.isBlank()) return URLUtil.guessFileName(url, contentDisposition, mime)
+        // A random id (uuid / long hex) in the link is not a name: call it "download" instead.
+        if (!fromHeader && looksRandom(n.substringBeforeLast('.', n))) {
+            n = "download" + n.substringAfterLast('.', "").let { if (it.isEmpty() || it.length > 6) "" else ".$it" }
+        }
         if (!n.substringAfterLast('.', "").let { it.isNotEmpty() && it.length <= 6 } && !mime.isNullOrBlank() &&
             mime != "application/octet-stream") {
             MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)?.let { n = "$n.$it" }
         }
         return n
+    }
+
+    /** Removes folders and characters Android does not allow in a file name. */
+    fun cleanFileName(raw: String): String =
+        raw.substringAfterLast('/').substringAfterLast('\\').replace(Regex("[:*?\"<>|]"), "_").trim()
+
+    private fun looksRandom(stem: String): Boolean =
+        Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").matches(stem) ||
+        Regex("^[0-9a-fA-F]{24,}$").matches(stem)
+
+    // ── Downloads whose bytes are made inside the app (blob: and data: links) ─────
+
+    /** Opens the file for a download that the page hands over piece by piece. Null when it cannot be created. */
+    fun openLocal(rec: DownloadRecord): java.io.OutputStream? {
+        if (!rec.isEngine) return null
+        live[rec.id] = rec
+        rec.status = DownloadManager.STATUS_RUNNING
+        rec.downloadedBytes = 0
+        return try {
+            val part = partFile(rec)
+            part.parentFile?.mkdirs()
+            saveState(rec)
+            java.io.FileOutputStream(part)
+        } catch (_: Exception) {
+            rec.status = DownloadManager.STATUS_FAILED
+            null
+        }
+    }
+
+    /** All bytes written (or the page gave up): publish the file, or mark it failed. */
+    fun finishLocal(rec: DownloadRecord, ok: Boolean) {
+        val part = partFile(rec)
+        val outcome = if (ok) {
+            if (rec.totalBytes <= 0) rec.totalBytes = rec.downloadedBytes
+            publish(rec, part)
+        } else {
+            part.delete()
+            DownloadManager.STATUS_FAILED
+        }
+        rec.speed = 0
+        rec.status = outcome
+        saveState(rec)
+        main.post {
+            listener?.invoke()
+            if (outcome == DownloadManager.STATUS_SUCCESSFUL) notifyDone(rec)
+        }
     }
 
     fun mimeFor(rec: DownloadRecord): String {
@@ -257,6 +311,7 @@ object DownloadEngine {
             c.readTimeout = 30_000
             c.setRequestProperty("User-Agent", rec.userAgent.ifBlank { Net.UA })
             c.setRequestProperty("Accept-Encoding", "identity")
+            if (rec.referer.isNotBlank()) c.setRequestProperty("Referer", rec.referer)
             if (job.cookie.isNotBlank() && u.host == firstHost) c.setRequestProperty("Cookie", job.cookie)
             if (offset > 0) c.setRequestProperty("Range", "bytes=$offset-")
             job.conn = c

@@ -1,0 +1,5 @@
+Clear data per profile (Menu > Clear data).
+Background can be a GIF or video, with a sound switch.
+Downloads keep real file names and work from sites that need login (e.g. claude.ai).
+Only the app open sound has a default; add your own for the rest.
+Now GPL-3.0-or-later.
