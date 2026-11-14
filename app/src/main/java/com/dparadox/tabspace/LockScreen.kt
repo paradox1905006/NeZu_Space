@@ -27,12 +27,19 @@ object LockState {
 
     private var started = 0
     private var leftAt = 0L
+    private var externalAt = 0L
+
+    /** Call right before starting a picker / crop / file chooser: leaving for it must not count as leaving the app. */
+    fun markExternalLaunch() { externalAt = SystemClock.elapsedRealtime() }
 
     fun onStart() { started++ }
 
     fun onStop() {
         started = (started - 1).coerceAtLeast(0)
-        if (started == 0) leftAt = SystemClock.elapsedRealtime()
+        if (started == 0) {
+            val external = externalAt != 0L && SystemClock.elapsedRealtime() - externalAt < 10 * 60_000L
+            if (!external) leftAt = SystemClock.elapsedRealtime()
+        }
     }
 
     /** True when the app lock must be asked now. Also forgets old unlocks once the chosen time away has passed. */
@@ -43,6 +50,7 @@ object LockState {
             unlockedProfiles.clear()
         }
         leftAt = 0L
+        externalAt = 0L
         return !unlocked
     }
 

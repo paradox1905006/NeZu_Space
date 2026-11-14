@@ -302,6 +302,12 @@ class SettingsActivity : AppCompatActivity() {
         applyMaster()
     }
 
+    /** The picture / sound picker is not "leaving the app": do not re-lock when it closes. */
+    override fun startActivityForResult(intent: android.content.Intent, requestCode: Int, options: android.os.Bundle?) {
+        LockState.markExternalLaunch()
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
     override fun onStart() {
         super.onStart()
         LockState.onStart()

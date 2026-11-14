@@ -129,6 +129,7 @@
                 android:visibility="gone">
 
                 <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/homeLogo"
                     android:layout_width="88dp"
                     android:layout_height="88dp"
                     android:layout_marginTop="44dp"
@@ -138,6 +139,7 @@
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Squircle" />
 
                 <TextView
+                    android:id="@+id/homeTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"

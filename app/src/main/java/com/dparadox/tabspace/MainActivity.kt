@@ -425,6 +425,12 @@ class MainActivity : AppCompatActivity() {
         applyAppTheme()   // picture is cropped to the new screen size
     }
 
+    /** System pickers, the crop screen and file choosers are not "leaving the app": do not re-lock when they close. */
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        LockState.markExternalLaunch()
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
     override fun onStart() {
         super.onStart()
         LockState.onStart()
@@ -480,6 +486,10 @@ class MainActivity : AppCompatActivity() {
         b.switcherPanel.setCardBackgroundColor(
             ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerLow), 0xF2))
         allTabs.forEach { it.webView?.let { wv -> applyWebBackground(wv) } }
+        // Home logo + "NeZu Space" title follow the picture opacity (Settings > Background).
+        val homeAlpha = if (ThemePrefs.hasBackground(this)) (ThemePrefs.opacity(this) / 100f).coerceIn(0.1f, 1f) else 1f
+        b.homeLogo.alpha = homeAlpha
+        b.homeTitle.alpha = homeAlpha
     }
 
     private fun applyWebBackground(wv: WebView) {
