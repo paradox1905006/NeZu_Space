@@ -6,6 +6,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -124,25 +125,46 @@ class LockScreen(private val activity: FragmentActivity, private val onUnlocked:
         onUnlocked()
     }
 
+    /** Full-screen Material 3 cover: big lock badge, title, message, Unlock and (optionally) Switch profile. */
     private fun build(): FrameLayout {
         val surface = MaterialColors.getColor(activity, com.google.android.material.R.attr.colorSurface, 0xFFFFFFFF.toInt())
         val onSurface = MaterialColors.getColor(activity, com.google.android.material.R.attr.colorOnSurface, 0xFF000000.toInt())
         val variant = MaterialColors.getColor(activity, com.google.android.material.R.attr.colorOnSurfaceVariant, onSurface)
+        val badgeBg = MaterialColors.getColor(activity, com.google.android.material.R.attr.colorPrimaryContainer, surface)
+        val badgeFg = MaterialColors.getColor(activity, com.google.android.material.R.attr.colorOnPrimaryContainer, onSurface)
         val dp = activity.resources.displayMetrics.density
+        fun px(v: Int) = (v * dp).toInt()
 
+        val badge = ImageView(activity).apply {
+            setImageResource(R.drawable.ic_lock_filled)
+            imageTintList = android.content.res.ColorStateList.valueOf(badgeFg)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(badgeBg)
+            }
+            setPadding(px(26), px(26), px(26), px(26))
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
         val title = TextView(activity).apply {
-            textSize = 24f; setTextColor(onSurface); gravity = Gravity.CENTER
+            setTextAppearance(R.style.TextAppearance_Nezu_HeadlineSmall)
+            setTextColor(onSurface); gravity = Gravity.CENTER
+            setPadding(0, px(28), 0, 0)
         }
         val message = TextView(activity).apply {
-            textSize = 15f; setTextColor(variant); gravity = Gravity.CENTER
-            setPadding(0, (8 * dp).toInt(), 0, (24 * dp).toInt())
+            setTextAppearance(R.style.TextAppearance_Nezu_BodyLarge)
+            setTextColor(variant); gravity = Gravity.CENTER
+            setPadding(0, px(8), 0, px(32))
         }
-        val unlock = MaterialButton(activity).apply {
+        val unlock = MaterialButton(activity, null, com.google.android.material.R.attr.materialButtonStyle).apply {
             text = "Unlock"
+            setIconResource(R.drawable.ic_fingerprint)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            minHeight = px(56)
             setOnClickListener { prompt() }
         }
         val switch = MaterialButton(activity, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
             text = "Switch profile"
+            setIconResource(R.drawable.ic_swap)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             visibility = View.GONE
         }
         titleView = title; messageView = message; switchButton = switch
@@ -150,8 +172,13 @@ class LockScreen(private val activity: FragmentActivity, private val onUnlocked:
         val column = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding((32 * dp).toInt(), 0, (32 * dp).toInt(), 0)
-            addView(title); addView(message); addView(unlock); addView(switch)
+            setPadding(px(32), 0, px(32), 0)
+            addView(badge, LinearLayout.LayoutParams(px(96), px(96)))
+            addView(title); addView(message)
+            addView(unlock, LinearLayout.LayoutParams(px(240), ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(switch, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = px(8)
+            })
         }
         return FrameLayout(activity).apply {
             setBackgroundColor(surface)

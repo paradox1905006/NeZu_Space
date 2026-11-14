@@ -83,9 +83,8 @@ class SettingsActivity : AppCompatActivity() {
             isAppearanceLightNavigationBars = !night
         }
 
+        // Large collapsing title (Material 3); the toolbar only carries the back arrow.
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
 
         findViewById<TextView>(R.id.tvVersion).text = "Version ${BuildConfig.VERSION_NAME}"
@@ -198,6 +197,19 @@ class SettingsActivity : AppCompatActivity() {
 
         refreshBackgroundUi()
 
+        // Tapping the whole row toggles its switch.
+        listOf(
+            R.id.rowDynamic to R.id.switchDynamic,
+            R.id.rowAnimations to R.id.switchAnimations,
+            R.id.rowAdBlock to R.id.switchAdBlock,
+            R.id.rowSoundMaster to R.id.switchSoundMaster,
+            R.id.rowWebTransparent to R.id.switchWebTransparent,
+            R.id.rowVideoSound to R.id.switchVideoSound,
+        ).forEach { (rowId, switchId) ->
+            val sw = findViewById<MaterialSwitch>(switchId)
+            findViewById<View>(rowId).setOnClickListener { if (sw.isEnabled) sw.toggle() }
+        }
+
         // ── Help / About ─────────────────────────────────────────────────────
         findViewById<LinearLayout>(R.id.rowGuide).setOnClickListener {
             startActivity(Intent(this, GuideActivity::class.java))
@@ -229,10 +241,14 @@ class SettingsActivity : AppCompatActivity() {
 
         SoundFx.Event.values().forEach { e ->
             val divider = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
-                    topMargin = (14 * resources.displayMetrics.density).toInt()
-                    bottomMargin = (14 * resources.displayMetrics.density).toInt()
+                val d = resources.displayMetrics.density
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (1 * d).toInt().coerceAtLeast(1)).apply {
+                    marginStart = (72 * d).toInt()
+                    marginEnd = (20 * d).toInt()
+                    topMargin = (4 * d).toInt()
+                    bottomMargin = (4 * d).toInt()
                 }
+                alpha = 0.6f
                 setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(
                     this, com.google.android.material.R.attr.colorOutlineVariant))
             }
@@ -317,19 +333,25 @@ class SettingsActivity : AppCompatActivity() {
 
         fun header(text: String) {
             list.addView(TextView(this).apply {
-                this.text = text
-                textSize = 12f
-                letterSpacing = 0.08f
+                this.text = text.lowercase().replaceFirstChar { it.uppercase() }
+                setTextAppearance(R.style.TextAppearance_Nezu_LabelLarge)
                 setTextColor(com.google.android.material.color.MaterialColors.getColor(
                     this, com.google.android.material.R.attr.colorPrimary))
-                setPadding(0, ((if (firstHeader) 0 else 18) * dp).toInt(), 0, (2 * dp).toInt())
+                setPadding((72 * dp).toInt(), ((if (firstHeader) 8 else 20) * dp).toInt(), (20 * dp).toInt(), (4 * dp).toInt())
             })
             firstHeader = false
         }
 
+        fun setIcon(row: View, icon: Int?) {
+            val iv = row.findViewById<ImageView>(R.id.ivPrefIcon)
+            if (icon == null) { iv.visibility = View.GONE; return }
+            iv.setImageResource(icon); iv.visibility = View.VISIBLE
+        }
+
         /** A row with a switch. [onToggle] returns false to refuse the change (the switch jumps back). */
-        fun switchRow(title: String, hint: String, checked: Boolean, onToggle: (Boolean) -> Boolean) {
+        fun switchRow(title: String, hint: String, checked: Boolean, icon: Int? = null, onToggle: (Boolean) -> Boolean) {
             val row = layoutInflater.inflate(R.layout.item_pref_row, list, false)
+            setIcon(row, icon)
             row.findViewById<TextView>(R.id.tvPrefTitle).text = title
             row.findViewById<TextView>(R.id.tvPrefHint).text = hint
             val sw = row.findViewById<MaterialSwitch>(R.id.switchPref)
@@ -344,8 +366,9 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         /** A row that opens a dialog. [value] is shown under the title and is read again after [onClick] calls its argument. */
-        fun actionRow(title: String, value: () -> String, onClick: (refresh: () -> Unit) -> Unit) {
+        fun actionRow(title: String, value: () -> String, icon: Int? = null, onClick: (refresh: () -> Unit) -> Unit) {
             val row = layoutInflater.inflate(R.layout.item_pref_row, list, false)
+            setIcon(row, icon)
             row.findViewById<TextView>(R.id.tvPrefTitle).text = title
             val hint = row.findViewById<TextView>(R.id.tvPrefHint)
             hint.text = value()
@@ -366,12 +389,12 @@ class SettingsActivity : AppCompatActivity() {
         // ── Lock ─────────────────────────────────────────────────────────────
         header("LOCK AND SCREEN")
         switchRow("App lock", "Ask for fingerprint, face or phone lock when the app opens",
-            PrivacyPrefs.appLock(this)) { on ->
+            PrivacyPrefs.appLock(this), R.drawable.ic_fingerprint) { on ->
             if (on && noScreenLock()) false else { PrivacyPrefs.setAppLock(this, on); true }
         }
         val delays = longArrayOf(0L, 30_000L, 120_000L, 600_000L)
         val delayNames = arrayOf("Immediately", "After 30 seconds", "After 2 minutes", "After 10 minutes")
-        actionRow("Lock again", { delayNames[delays.indexOf(PrivacyPrefs.lockDelayMs(this)).coerceAtLeast(0)] }) { refresh ->
+        actionRow("Lock again", { delayNames[delays.indexOf(PrivacyPrefs.lockDelayMs(this)).coerceAtLeast(0)] }, R.drawable.ic_lock_clock) { refresh ->
             MaterialAlertDialogBuilder(this)
                 .setTitle("Lock again after leaving the app")
                 .setSingleChoiceItems(delayNames, delays.indexOf(PrivacyPrefs.lockDelayMs(this)).coerceAtLeast(0)) { d, i ->
@@ -382,12 +405,12 @@ class SettingsActivity : AppCompatActivity() {
         actionRow("Locked profiles", {
             val n = PrivacyPrefs.lockedProfiles(this).size
             if (n == 0) "None. A locked profile asks for unlock before it opens." else "$n locked"
-        }) { refresh ->
+        }, R.drawable.ic_lock_person) { refresh ->
             if (!noScreenLock()) pickProfiles("Locked profiles", PrivacyPrefs.lockedProfiles(this),
                 { PrivacyPrefs.setLockedProfiles(this, it) }, refresh)
         }
         switchRow("Hide screen in recent apps", "Blocks screenshots and shows a blank picture in the recent-apps list. Always on when the app lock or a locked or private profile is used",
-            PrivacyPrefs.secureScreen(this)) { on ->
+            PrivacyPrefs.secureScreen(this), R.drawable.ic_visibility_off) { on ->
             PrivacyPrefs.setSecureScreen(this, on)
             if (on) window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
             else if (!PrivacyPrefs.appLock(this)) window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -399,17 +422,17 @@ class SettingsActivity : AppCompatActivity() {
         actionRow("Private profiles", {
             val n = PrivacyPrefs.privateProfiles(this).size
             if (n == 0) "None. A private profile forgets cookies, storage, cache and history when the app is closed." else "$n private"
-        }) { refresh ->
+        }, R.drawable.ic_incognito) { refresh ->
             pickProfiles("Private profiles", PrivacyPrefs.privateProfiles(this),
                 { PrivacyPrefs.setPrivateProfiles(this, it) }, refresh)
         }
         switchRow("Clear data when the app closes", "Removes the data chosen below from every profile",
-            PrivacyPrefs.autoClear(this)) { on -> PrivacyPrefs.setAutoClear(this, on); true }
+            PrivacyPrefs.autoClear(this), R.drawable.ic_auto_delete) { on -> PrivacyPrefs.setAutoClear(this, on); true }
         actionRow("What to clear", {
             val m = PrivacyPrefs.autoClearMask(this)
             val names = DataWiper.BITS.indices.filter { m and DataWiper.BITS[it] != 0 }.map { DataWiper.LABELS[it].substringBefore(" (") }
             if (names.isEmpty()) "Nothing selected" else names.joinToString(", ")
-        }) { refresh ->
+        }, R.drawable.ic_checklist) { refresh ->
             val m = PrivacyPrefs.autoClearMask(this)
             val checked = BooleanArray(DataWiper.BITS.size) { m and DataWiper.BITS[it] != 0 }
             MaterialAlertDialogBuilder(this)
@@ -426,30 +449,30 @@ class SettingsActivity : AppCompatActivity() {
         // ── Web ──────────────────────────────────────────────────────────────
         header("WEB")
         switchRow("Remove tracking from links", "Strips utm_, fbclid, gclid and similar parameters. Copy link gives the clean link",
-            PrivacyPrefs.stripTracking(this)) { on -> PrivacyPrefs.setStripTracking(this, on); true }
+            PrivacyPrefs.stripTracking(this), R.drawable.ic_link_off) { on -> PrivacyPrefs.setStripTracking(this, on); true }
         switchRow("Block trackers", "Blocks analytics and tracking hosts, next to the ad blocker. A few sites may break",
-            PrivacyPrefs.blockTrackers(this)) { on -> PrivacyPrefs.setBlockTrackers(this, on); true }
+            PrivacyPrefs.blockTrackers(this), R.drawable.ic_shield) { on -> PrivacyPrefs.setBlockTrackers(this, on); true }
         switchRow("Block third-party cookies", "Cookies that come from a site other than the page you are on",
-            PrivacyPrefs.blockThirdPartyCookies(this)) { on -> PrivacyPrefs.setBlockThirdPartyCookies(this, on); true }
+            PrivacyPrefs.blockThirdPartyCookies(this), R.drawable.ic_cookie) { on -> PrivacyPrefs.setBlockThirdPartyCookies(this, on); true }
         switchRow("HTTPS only", "Opens http links as https. If a site has no https, you are asked first",
-            PrivacyPrefs.httpsOnly(this)) { on -> PrivacyPrefs.setHttpsOnly(this, on); true }
+            PrivacyPrefs.httpsOnly(this), R.drawable.ic_https) { on -> PrivacyPrefs.setHttpsOnly(this, on); true }
         switchRow("Safe Browsing", "Warns about phishing and malware pages (needs Google Play services)",
-            PrivacyPrefs.safeBrowsing(this)) { on -> PrivacyPrefs.setSafeBrowsing(this, on); true }
+            PrivacyPrefs.safeBrowsing(this), R.drawable.ic_security) { on -> PrivacyPrefs.setSafeBrowsing(this, on); true }
         switchRow("Ask before opening other apps", "A page cannot open another app (mail, maps, stores) without your OK",
-            PrivacyPrefs.confirmExternal(this)) { on -> PrivacyPrefs.setConfirmExternal(this, on); true }
+            PrivacyPrefs.confirmExternal(this), R.drawable.ic_open_in_new) { on -> PrivacyPrefs.setConfirmExternal(this, on); true }
         actionRow("Site permissions", {
             val n = PrivacyPrefs.siteDecisions(this).size
             if (n == 0) "Camera, microphone and location choices for sites. Nothing saved yet" else "$n sites with saved choices"
-        }) { refresh -> showSitePermissions(refresh) }
+        }, R.drawable.ic_admin_panel) { refresh -> showSitePermissions(refresh) }
 
         // ── Downloads and data ───────────────────────────────────────────────
         header("DOWNLOADS AND DATA")
         switchRow("Warn before risky downloads", "Asks before program files (apk, exe ...) and before downloads that no tap started",
-            PrivacyPrefs.downloadWarn(this)) { on -> PrivacyPrefs.setDownloadWarn(this, on); true }
+            PrivacyPrefs.downloadWarn(this), R.drawable.ic_warning) { on -> PrivacyPrefs.setDownloadWarn(this, on); true }
         switchRow("Clear clipboard after copying cookies", "Empties the clipboard one minute after Copy cookies",
-            PrivacyPrefs.clipboardClear(this)) { on -> PrivacyPrefs.setClipboardClear(this, on); true }
+            PrivacyPrefs.clipboardClear(this), R.drawable.ic_content_paste_off) { on -> PrivacyPrefs.setClipboardClear(this, on); true }
         switchRow("Encrypt saved data", "Tabs, profiles, shortcuts and the download list are stored encrypted, with a key that stays in this phone's Keystore. Pictures and downloaded files are not encrypted",
-            PrivacyPrefs.encryptData(this)) { on -> PrivacyPrefs.setEncryptData(this, on); true }
+            PrivacyPrefs.encryptData(this), R.drawable.ic_encrypted) { on -> PrivacyPrefs.setEncryptData(this, on); true }
     }
 
     /** Pick profiles from a list; [refresh] updates the row text afterwards. */

@@ -73,7 +73,9 @@ class TabAdapter(
         b.root.translationX = 0f
 
         val onSurface = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorOnSurface)
-        val primary = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorPrimary)
+        val onSelected = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorOnSecondaryContainer)
+        val selectedBg = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorSecondaryContainer)
+        val rowBg = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorSurfaceContainerHighest)
         val host = runCatching { Uri.parse(tab.url).host }.getOrNull()?.removePrefix("www.")?.ifBlank { null }
         val isHome = tab.homeShown || tab.url.isBlank()
 
@@ -83,13 +85,13 @@ class TabAdapter(
             tab.title.isNotBlank()  -> tab.title
             else                    -> host ?: tab.url
         }
-        b.title.setTextColor(if (isCurrent) primary else onSurface)
+        b.title.setTextColor(if (isCurrent) onSelected else onSurface)
         b.subtitle.text = if (isHome || host == null) tab.name else "${tab.name} · $host"
 
-        // Highlight of the open tab
+        // Rounded row; the open tab gets the tonal "selected" colour (Material 3 list highlight).
         b.root.background = GradientDrawable().apply {
-            cornerRadius = 16f * ctx.resources.displayMetrics.density
-            setColor(if (isCurrent) (primary and 0x00FFFFFF) or 0x24000000 else Color.TRANSPARENT)
+            cornerRadius = 20f * ctx.resources.displayMetrics.density
+            setColor(if (isCurrent) selectedBg else (rowBg and 0x00FFFFFF) or (0x99 shl 24))
         }
 
         // Icon: avatar > cached site icon > coloured circle with the first letter

@@ -6,30 +6,57 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- URL bar (swipe it sideways to change tab) -->
+    <!-- ═══ Search bar (M3 search bar; swipe it sideways to change tab) ═══ -->
     <com.dparadox.tabspace.SwipeFrameLayout
         android:id="@+id/swipeUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/urlCard"
             style="?attr/materialCardViewFilledStyle"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:layout_marginHorizontal="12dp"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="6dp"
-            app:cardCornerRadius="26dp">
+            android:layout_marginBottom="4dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-                <View
-                    android:id="@+id/tabDot"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_marginStart="18dp"
-                    android:background="@drawable/bg_dot" />
+
+                <!-- Search glyph with the profile colour as a small badge -->
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_search"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+                    <FrameLayout
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="9dp"
+                        android:layout_marginEnd="9dp"
+                        android:background="@drawable/bg_dot_ring">
+                        <View
+                            android:id="@+id/tabDot"
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/bg_dot" />
+                    </FrameLayout>
+                </FrameLayout>
+
                 <EditText
                     android:id="@+id/urlInput"
                     android:layout_width="0dp"
@@ -40,15 +67,19 @@
                     android:imeOptions="actionGo"
                     android:importantForAutofill="no"
                     android:inputType="textUri"
-                    android:paddingHorizontal="12dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="8dp"
                     android:selectAllOnFocus="true"
                     android:singleLine="true"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
                     android:textColor="?attr/colorOnSurface"
-                    android:textSize="15sp" />
+                    android:textColorHint="?attr/colorOnSurfaceVariant" />
+
                 <ImageButton
                     android:id="@+id/btnReload"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
+                    android:layout_marginEnd="4dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Reload"
                     android:src="@drawable/ic_refresh"
@@ -57,13 +88,17 @@
         </com.google.android.material.card.MaterialCardView>
     </com.dparadox.tabspace.SwipeFrameLayout>
 
-    <!-- Progress -->
+    <!-- Page loading progress -->
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="32dp"
         android:max="100"
-        android:visibility="invisible" />
+        android:visibility="invisible"
+        app:trackColor="@android:color/transparent"
+        app:trackCornerRadius="2dp"
+        app:trackThickness="3dp" />
 
     <!-- Page + tab switcher. Animation overlays are added to contentRoot. -->
     <FrameLayout
@@ -82,7 +117,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <!-- NeZu Space home screen. No background: the window picture shows through. -->
+            <!-- ═══ NeZu Space home. No background: the window picture shows through. ═══ -->
             <LinearLayout
                 android:id="@+id/homeView"
                 android:layout_width="match_parent"
@@ -92,32 +127,47 @@
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
                 android:visibility="gone">
-                <ImageView
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginTop="40dp"
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:layout_marginTop="44dp"
                     android:importantForAccessibility="no"
                     android:scaleType="fitCenter"
-                    android:src="@mipmap/ic_launcher" />
+                    android:src="@mipmap/ic_launcher"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Squircle" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="16dp"
                     android:text="NeZu Space"
-                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.Nezu.Brand"
+                    android:textColor="?attr/colorOnSurface" />
+
                 <TextView
                     android:id="@+id/homeProfileName"
-                    android:layout_width="wrap_content"
+                    style="@style/Widget.Nezu.Pill"
+                    android:layout_marginTop="10dp"
+                    android:drawableStart="@drawable/ic_person_small"
+                    android:maxWidth="260dp"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:layout_marginTop="32dp"
+                    android:paddingHorizontal="24dp"
+                    android:text="Shortcuts"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/homeGrid"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_marginTop="28dp"
+                    android:layout_marginTop="8dp"
                     android:layout_weight="1"
                     android:clipToPadding="false"
                     android:paddingHorizontal="12dp"
@@ -125,7 +175,7 @@
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Tab panel: dim scrim + bottom sheet with all tabs and the + button -->
+        <!-- ═══ Tab panel: dim scrim + bottom sheet with every tab of the profile ═══ -->
         <FrameLayout
             android:id="@+id/switcher"
             android:layout_width="match_parent"
@@ -136,7 +186,7 @@
                 android:id="@+id/switcherScrim"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#99000000"
+                android:background="@color/nezu_scrim"
                 android:clickable="true"
                 android:focusable="false" />
 
@@ -147,8 +197,9 @@
                 android:layout_gravity="bottom|center_horizontal"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardElevation="8dp"
-                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.Nezu.Sheet"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                app:cardElevation="6dp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Sheet"
                 app:strokeWidth="0dp">
 
                 <LinearLayout
@@ -156,34 +207,68 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <View
+                        android:layout_width="32dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="12dp"
+                        android:alpha="0.4"
+                        android:background="@drawable/bg_drag_handle" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="24dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="8dp">
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tabs"
+                                android:textAppearance="?attr/textAppearanceTitleLarge"
+                                android:textColor="?attr/colorOnSurface" />
+                            <TextView
+                                android:id="@+id/switcherSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:singleLine="true"
+                                android:ellipsize="end"
+                                android:textAppearance="?attr/textAppearanceBodyMedium"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnNewInPanel"
+                            style="@style/Widget.Material3.Button.TonalButton.Icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="New tab"
+                            android:text="New tab"
+                            app:icon="@drawable/ic_add" />
+                    </LinearLayout>
+
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/tabList"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:clipToPadding="false"
                         android:overScrollMode="ifContentScrolls"
-                        android:paddingTop="6dp"
-                        android:paddingBottom="6dp" />
-
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                        <ImageButton
-                            android:id="@+id/btnNewInPanel"
-                            android:layout_width="64dp"
-                            android:layout_height="52dp"
-                            android:layout_gravity="center_horizontal"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="New tab"
-                            android:src="@drawable/ic_add"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-                    </FrameLayout>
+                        android:paddingTop="4dp"
+                        android:paddingBottom="16dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
     </FrameLayout>
 
-    <!-- Bottom nav bar (swipe it sideways to change profile) -->
+    <!-- ═══ Floating bottom dock (swipe it sideways to change profile) ═══ -->
     <com.dparadox.tabspace.SwipeFrameLayout
         android:id="@+id/swipeBottom"
         android:layout_width="match_parent"
@@ -192,14 +277,19 @@
         <LinearLayout
             android:id="@+id/bottomBar"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:background="?attr/colorSurfaceContainer"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_dock"
+            android:backgroundTint="?attr/colorSurfaceContainer"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBack"
-                style="?attr/materialIconButtonStyle"
+                style="@style/Widget.Nezu.DockButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
@@ -208,7 +298,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnForward"
-                style="?attr/materialIconButtonStyle"
+                style="@style/Widget.Nezu.DockButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
@@ -217,13 +307,14 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnHome"
-                style="?attr/materialIconButtonStyle"
+                style="@style/Widget.Nezu.DockButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
                 android:contentDescription="Home"
                 app:icon="@drawable/ic_home" />
 
+            <!-- Tabs: rounded square with the tab count inside -->
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="48dp"
@@ -242,12 +333,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
+                    android:importantForAccessibility="no"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="11sp"
                     android:textStyle="bold" />
             </FrameLayout>
 
-            <!-- Profile button: current profile initial + colour -->
+            <!-- Profile: filled circle in the profile colour + initial -->
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="48dp"
@@ -260,20 +353,22 @@
                     android:contentDescription="Profiles"
                     android:scaleType="center"
                     android:src="@drawable/ic_profile"
-                    app:tint="?attr/colorOnSurfaceVariant" />
+                    app:tint="?attr/colorPrimary" />
                 <TextView
                     android:id="@+id/profileInitialBar"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="10sp"
+                    android:importantForAccessibility="no"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnPrimary"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </FrameLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMenu"
-                style="?attr/materialIconButtonStyle"
+                style="@style/Widget.Nezu.DockButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"

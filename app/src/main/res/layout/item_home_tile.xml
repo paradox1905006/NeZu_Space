@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Home shortcut: rounded icon tile (shape and colour set in HomeAdapter) + name. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -7,12 +8,13 @@
     android:focusable="true"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:paddingVertical="10dp">
+    android:paddingTop="10dp"
+    android:paddingBottom="12dp">
 
     <FrameLayout
         android:id="@+id/tileBox"
-        android:layout_width="60dp"
-        android:layout_height="60dp">
+        android:layout_width="64dp"
+        android:layout_height="64dp">
         <ImageView
             android:id="@+id/tileIcon"
             android:layout_width="match_parent"
@@ -24,8 +26,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSecondaryContainer"
             android:textStyle="bold" />
     </FrameLayout>
 
@@ -38,6 +40,6 @@
         android:gravity="center"
         android:maxLines="1"
         android:paddingHorizontal="4dp"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
         android:textColor="?attr/colorOnSurface" />
 </LinearLayout>

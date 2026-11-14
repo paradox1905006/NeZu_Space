@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    NeZu Space design system (Material 3 / Material You).
+    Colours: values/themes.xml (light) and values-night/themes.xml (dark), replaced by
+    wallpaper colours when Material You is on. Everything else is shared from here.
+-->
+<resources>
+
+    <style name="Base.Theme.Tabspace" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Type: Google Sans Flex everywhere, M3 type scale -->
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.Nezu.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.Nezu.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.Nezu.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Nezu.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Nezu.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.Nezu.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Nezu.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Nezu.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.Nezu.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Nezu.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Nezu.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Nezu.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Nezu.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Nezu.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Nezu.LabelSmall</item>
+
+        <!-- Shapes: softer, more modern corners -->
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.Nezu.Small</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.Nezu.Medium</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.Nezu.Large</item>
+        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.Nezu.ExtraLarge</item>
+
+        <!-- Components -->
+        <item name="materialSwitchStyle">@style/Widget.Nezu.MaterialSwitch</item>
+        <item name="textInputOutlinedStyle">@style/Widget.Nezu.TextInputLayout.Outlined</item>
+        <item name="popupMenuStyle">@style/Widget.Nezu.PopupMenu</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Nezu.BottomSheetDialog</item>
+    </style>
+
+    <!-- ── Type scale ─────────────────────────────────────────────────────── -->
+    <style name="TextAppearance.Nezu.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+    <style name="TextAppearance.Nezu.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="TextAppearance.Nezu.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.005</item>
+    </style>
+    <style name="TextAppearance.Nezu.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+    <style name="TextAppearance.Nezu.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+    <style name="TextAppearance.Nezu.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+    <style name="TextAppearance.Nezu.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    <style name="TextAppearance.Nezu.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+    <style name="TextAppearance.Nezu.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    <style name="TextAppearance.Nezu.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+        <item name="android:letterSpacing">0.03</item>
+    </style>
+
+    <style name="TextAppearance.Nezu.Brand" parent="TextAppearance.Nezu.HeadlineMedium">
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <!-- ── Shapes ─────────────────────────────────────────────────────────── -->
+    <style name="ShapeAppearance.Nezu.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.ExtraLarge" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.Squircle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">30%</item>
+    </style>
+    <style name="ShapeAppearance.Nezu.Field" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
+    <!-- ── Components ─────────────────────────────────────────────────────── -->
+    <style name="Widget.Nezu.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbIcon">@drawable/switch_thumb_icon</item>
+    </style>
+
+    <style name="Widget.Nezu.TextInputLayout.Outlined" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="shapeAppearance">@style/ShapeAppearance.Nezu.Field</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="startIconTint">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="Widget.Nezu.PopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:popupElevation">8dp</item>
+    </style>
+
+    <style name="ThemeOverlay.Nezu.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.Nezu.BottomSheet</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Widget.Nezu.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">?attr/colorSurfaceContainerLow</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Nezu.Sheet</item>
+    </style>
+
+    <style name="ShapeAppearance.Nezu.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- Cards: grouped settings / sections -->
+    <style name="Widget.Nezu.Card.Group" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
+        <item name="cardCornerRadius">24dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <!-- Section header above a group card -->
+    <style name="Widget.Nezu.SectionHeader" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">20dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <!-- Preference row: icon · title/summary · trailing widget -->
+    <style name="Widget.Nezu.PrefRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">72dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Icon" parent="">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_marginEnd">16dp</item>
+        <item name="android:padding">9dp</item>
+        <item name="android:background">@drawable/bg_icon_circle</item>
+        <item name="android:backgroundTint">?attr/colorPrimaryContainer</item>
+        <item name="tint">?attr/colorOnPrimaryContainer</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Icon.Secondary">
+        <item name="android:backgroundTint">?attr/colorSecondaryContainer</item>
+        <item name="tint">?attr/colorOnSecondaryContainer</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Icon.Tertiary">
+        <item name="android:backgroundTint">?attr/colorTertiaryContainer</item>
+        <item name="tint">?attr/colorOnTertiaryContainer</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Text" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Title" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodyLarge</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Summary" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">2dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodyMedium</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Value" parent="Widget.Nezu.PrefRow.Summary">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+    <style name="Widget.Nezu.PrefRow.Switch" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">16dp</item>
+    </style>
+    <style name="Widget.Nezu.Divider" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:layout_marginStart">72dp</item>
+        <item name="android:layout_marginEnd">20dp</item>
+        <item name="android:background">?attr/colorOutlineVariant</item>
+        <item name="android:alpha">0.6</item>
+    </style>
+
+    <!-- Bottom dock icon buttons -->
+    <style name="Widget.Nezu.DockButton" parent="Widget.Material3.Button.IconButton">
+        <item name="iconTint">@color/dock_icon_tint</item>
+        <item name="iconSize">24dp</item>
+    </style>
+
+    <!-- Small pill label (version, profile name) -->
+    <style name="Widget.Nezu.Pill" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/bg_pill</item>
+        <item name="android:backgroundTint">?attr/colorSecondaryContainer</item>
+        <item name="android:textColor">?attr/colorOnSecondaryContainer</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:drawablePadding">6dp</item>
+        <item name="android:drawableTint">?attr/colorOnSecondaryContainer</item>
+    </style>
+</resources>

@@ -71,6 +71,11 @@ class DownloadHistAdapter(
             else -> if (known) "Paused $pct%" else "Paused"
         }
 
+        h.status.setTextColor(com.google.android.material.color.MaterialColors.getColor(h.status,
+            if (st == DownloadManager.STATUS_FAILED || st == DownloadRecord.STATUS_MISSING)
+                androidx.appcompat.R.attr.colorError
+            else com.google.android.material.R.attr.colorPrimary))
+
         h.toggle.visibility = View.GONE
         if (d.isEngine) {
             val label = when (st) {

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - Material 3 redesign
+- New look on every screen, built on Material 3 with Material You: a full rose colour scheme for light and dark (wallpaper colours still replace it on Android 12+), Google Sans Flex type and softer, rounder shapes.
+- Browser: Material 3 search bar with the profile colour as a badge, floating bottom dock, profile button shows a coloured avatar with the initial.
+- Home: larger app icon, profile chip, "Shortcuts" title and rounded launcher-style tiles.
+- Tab panel: drag handle, title with tab count, "New tab" button and rounded tab rows with a tonal highlight for the open tab.
+- Menu is now a bottom sheet with the current page on top, 8 quick actions and an icon list. Long-press menus have icons and rounded corners.
+- Profiles open in a bottom sheet; the current profile is highlighted with a check mark.
+- Settings and the guide: large collapsing title, grouped cards, an icon for every option, tap anywhere on a row to flip its switch, switches with check / cross icons.
+- Dialogs, downloads, history, colour picker (ring + check mark) and the app-lock screen restyled to match.
+
 ## 4.1
 - New Menu > History (per profile): search, open, remove one, clear all. Not recorded in private profiles; cleared by Clear data > History and by "clear data when the app closes".
 

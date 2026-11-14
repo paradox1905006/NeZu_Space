@@ -118,6 +118,7 @@ class CropActivity : AppCompatActivity() {
 
     private fun plainButton(icon: Int, onClick: () -> Unit) = ImageButton(this).apply {
         setImageResource(icon)
+        imageTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
         background = null
         layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
         setOnClickListener { onClick() }

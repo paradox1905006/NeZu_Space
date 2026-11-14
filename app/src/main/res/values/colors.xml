@@ -1,4 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_bg">#FFF0F0</color>
+
+    <!-- NeZu rose: Material 3 tonal-spot scheme generated from seed #D9467A.
+         With Material You switched on (Android 12+), wallpaper colours replace these. -->
+    <!-- light -->
+    <color name="md_light_primary">#8D4A5D</color>
+    <color name="md_light_on_primary">#FFFFFF</color>
+    <color name="md_light_primary_container">#FFD9E1</color>
+    <color name="md_light_on_primary_container">#703345</color>
+    <color name="md_light_secondary">#75565D</color>
+    <color name="md_light_on_secondary">#FFFFFF</color>
+    <color name="md_light_secondary_container">#FFD9E1</color>
+    <color name="md_light_on_secondary_container">#5B3F46</color>
+    <color name="md_light_tertiary">#7B5733</color>
+    <color name="md_light_on_tertiary">#FFFFFF</color>
+    <color name="md_light_tertiary_container">#FFDCBF</color>
+    <color name="md_light_on_tertiary_container">#61401E</color>
+    <color name="md_light_error">#BA1A1A</color>
+    <color name="md_light_on_error">#FFFFFF</color>
+    <color name="md_light_error_container">#FFDAD6</color>
+    <color name="md_light_on_error_container">#93000A</color>
+    <color name="md_light_background">#FFF8F8</color>
+    <color name="md_light_on_background">#22191B</color>
+    <color name="md_light_surface">#FFF8F8</color>
+    <color name="md_light_on_surface">#22191B</color>
+    <color name="md_light_surface_variant">#F3DDE1</color>
+    <color name="md_light_on_surface_variant">#514346</color>
+    <color name="md_light_outline">#847376</color>
+    <color name="md_light_outline_variant">#D6C2C5</color>
+    <color name="md_light_inverse_surface">#382E30</color>
+    <color name="md_light_inverse_on_surface">#FEEDEF</color>
+    <color name="md_light_inverse_primary">#FFB1C4</color>
+    <color name="md_light_surface_dim">#E6D6D8</color>
+    <color name="md_light_surface_bright">#FFF8F8</color>
+    <color name="md_light_surface_container_lowest">#FFFFFF</color>
+    <color name="md_light_surface_container_low">#FFF0F2</color>
+    <color name="md_light_surface_container">#FBEAEC</color>
+    <color name="md_light_surface_container_high">#F5E4E6</color>
+    <color name="md_light_surface_container_highest">#EFDFE1</color>
+    <color name="md_light_primary_fixed">#FFD9E1</color>
+    <color name="md_light_primary_fixed_dim">#FFB1C4</color>
+    <color name="md_light_on_primary_fixed">#3A071A</color>
+    <color name="md_light_on_primary_fixed_variant">#703345</color>
+    <!-- dark -->
+    <color name="md_dark_primary">#FFB1C4</color>
+    <color name="md_dark_on_primary">#551D2F</color>
+    <color name="md_dark_primary_container">#703345</color>
+    <color name="md_dark_on_primary_container">#FFD9E1</color>
+    <color name="md_dark_secondary">#E3BDC5</color>
+    <color name="md_dark_on_secondary">#422930</color>
+    <color name="md_dark_secondary_container">#5B3F46</color>
+    <color name="md_dark_on_secondary_container">#FFD9E1</color>
+    <color name="md_dark_tertiary">#EDBD92</color>
+    <color name="md_dark_on_tertiary">#472A0A</color>
+    <color name="md_dark_tertiary_container">#61401E</color>
+    <color name="md_dark_on_tertiary_container">#FFDCBF</color>
+    <color name="md_dark_error">#FFB4AB</color>
+    <color name="md_dark_on_error">#690005</color>
+    <color name="md_dark_error_container">#93000A</color>
+    <color name="md_dark_on_error_container">#FFDAD6</color>
+    <color name="md_dark_background">#191113</color>
+    <color name="md_dark_on_background">#EFDFE1</color>
+    <color name="md_dark_surface">#191113</color>
+    <color name="md_dark_on_surface">#EFDFE1</color>
+    <color name="md_dark_surface_variant">#514346</color>
+    <color name="md_dark_on_surface_variant">#D6C2C5</color>
+    <color name="md_dark_outline">#9E8C8F</color>
+    <color name="md_dark_outline_variant">#514346</color>
+    <color name="md_dark_inverse_surface">#EFDFE1</color>
+    <color name="md_dark_inverse_on_surface">#382E30</color>
+    <color name="md_dark_inverse_primary">#8D4A5D</color>
+    <color name="md_dark_surface_dim">#191113</color>
+    <color name="md_dark_surface_bright">#413739</color>
+    <color name="md_dark_surface_container_lowest">#140C0E</color>
+    <color name="md_dark_surface_container_low">#22191B</color>
+    <color name="md_dark_surface_container">#261D1F</color>
+    <color name="md_dark_surface_container_high">#312829</color>
+    <color name="md_dark_surface_container_highest">#3C3234</color>
+    <color name="md_dark_primary_fixed">#FFD9E1</color>
+    <color name="md_dark_primary_fixed_dim">#FFB1C4</color>
+    <color name="md_dark_on_primary_fixed">#3A071A</color>
+    <color name="md_dark_on_primary_fixed_variant">#703345</color>
+
+    <!-- Fixed scrim for sheets and the tab panel -->
+    <color name="nezu_scrim">#8C000000</color>
 </resources>

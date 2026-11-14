@@ -190,9 +190,8 @@ class GuideActivity : AppCompatActivity() {
             isAppearanceLightNavigationBars = !night
         }
 
+        // Large collapsing title (Material 3); the toolbar only carries the back arrow.
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
 
         val list = findViewById<LinearLayout>(R.id.guideList)
@@ -201,6 +200,7 @@ class GuideActivity : AppCompatActivity() {
             val body = card.findViewById<TextView>(R.id.guideBody)
             val arrow = card.findViewById<ImageView>(R.id.guideArrow)
             card.findViewById<TextView>(R.id.guideTitle).text = t.title
+            card.findViewById<TextView>(R.id.guideNumber).text = (i + 1).toString()
             body.text = t.body
             card.findViewById<View>(R.id.guideHeader).setOnClickListener {
                 val open = body.visibility != View.VISIBLE

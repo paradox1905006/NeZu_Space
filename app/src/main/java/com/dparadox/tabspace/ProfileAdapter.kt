@@ -26,6 +26,7 @@ class ProfileAdapter(
         val initial: TextView = v.findViewById(R.id.profileInitial)
         val name: TextView = v.findViewById(R.id.profileName)
         val tabCountView: TextView = v.findViewById(R.id.profileTabCount)
+        val check: ImageView = v.findViewById(R.id.profileCheck)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -42,8 +43,15 @@ class ProfileAdapter(
         h.name.text = p.name
         val n = tabCount(p)
         h.tabCountView.text = "$n ${if (n == 1) "tab" else "tabs"}"
-        h.card.strokeWidth = if (p.id == currentId()) 6 else 0
+        // Current profile: tonal "selected" card + a ring in the profile colour + check mark.
+        val isCurrent = p.id == currentId()
+        val density = h.itemView.resources.displayMetrics.density
+        h.card.setCardBackgroundColor(com.google.android.material.color.MaterialColors.getColor(h.card,
+            if (isCurrent) com.google.android.material.R.attr.colorSecondaryContainer
+            else com.google.android.material.R.attr.colorSurfaceContainerHighest))
+        h.card.strokeWidth = if (isCurrent) (2 * density).toInt() else 0
         h.card.strokeColor = p.color
+        h.check.visibility = if (isCurrent) View.VISIBLE else View.GONE
 
         if (p.avatarUri != null) {
             h.avatar.visibility = View.VISIBLE

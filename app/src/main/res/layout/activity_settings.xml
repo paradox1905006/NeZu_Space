@@ -7,349 +7,273 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:paddingHorizontal="4dp"
-        app:navigationIcon="@drawable/ic_back"
-        app:navigationContentDescription="Back"
-        app:title="Settings"
-        app:titleTextAppearance="?attr/textAppearanceTitleLarge" />
+        android:layout_height="match_parent">
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false">
-
-        <LinearLayout
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="32dp">
+            android:background="@android:color/transparent"
+            app:elevation="0dp"
+            app:liftOnScroll="false">
 
-            <!-- Banner -->
-            <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                style="?attr/collapsingToolbarLayoutLargeStyle"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/collapsingToolbarLayoutLargeSize"
+                app:contentScrim="@android:color/transparent"
+                app:expandedTitleMarginStart="24dp"
+                app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+                app:statusBarScrim="@android:color/transparent"
+                app:title="Settings">
+
+                <com.google.android.material.appbar.MaterialToolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:background="@android:color/transparent"
+                    android:elevation="0dp"
+                    app:layout_collapseMode="pin"
+                    app:navigationContentDescription="Back"
+                    app:navigationIcon="@drawable/ic_back" />
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="20dp">
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="40dp">
+
+            <!-- ═══ App identity ═══ -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_hero"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="20dp">
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@mipmap/ic_launcher"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Squircle" />
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:paddingVertical="24dp">
-                    <ImageView
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:importantForAccessibility="no"
-                        android:scaleType="fitCenter"
-                        android:src="@mipmap/ic_launcher" />
+                    android:layout_marginStart="18dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:text="NeZu Space"
-                        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                        android:textStyle="bold" />
+                        android:textAppearance="@style/TextAppearance.Nezu.Brand"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textSize="24sp" />
                     <TextView
-                        android:id="@+id/tvVersion"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:text="Private, isolated multi-profile browser"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:textColor="?attr/colorOnPrimaryContainer" />
+                    <TextView
+                        android:id="@+id/tvVersion"
+                        style="@style/Widget.Nezu.Pill"
+                        android:layout_marginTop="10dp"
+                        android:backgroundTint="?attr/colorSurfaceContainerLowest"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:textAppearance="?attr/textAppearanceLabelMedium"
+                        android:textColor="?attr/colorOnSurface" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ APPEARANCE ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="APPEARANCE"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            </LinearLayout>
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Appearance" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Theme"
-                        android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-                    <com.google.android.material.button.MaterialButtonToggleGroup
-                        android:id="@+id/themeGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        app:selectionRequired="true"
-                        app:singleSelection="true">
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnThemeSystem"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="System" />
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnThemeLight"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Light" />
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnThemeDark"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Dark" />
-                    </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
+                    android:paddingVertical="8dp">
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:background="@null"
+                        android:orientation="vertical"
+                        android:gravity="start">
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_contrast" />
+                            <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                                <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Theme" />
+                                <TextView style="@style/Widget.Nezu.PrefRow.Summary" android:text="Follow the phone, or always light or dark" />
+                            </LinearLayout>
+                        </LinearLayout>
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/themeGroup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnThemeSystem"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:text="Material You colours"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:id="@+id/tvDynamicHint"
-                                android:layout_width="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Auto"
+                                android:contentDescription="System theme"
+                                app:icon="@drawable/ic_auto_mode"
+                                app:iconGravity="textStart"
+                                app:iconPadding="6dp"
+                                app:iconSize="18dp" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnThemeLight"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Use colours from your wallpaper (Android 12+)"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:layout_weight="1"
+                                android:text="Light"
+                                app:icon="@drawable/ic_light_mode"
+                                app:iconGravity="textStart"
+                                app:iconPadding="6dp"
+                                app:iconSize="18dp" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnThemeDark"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Dark"
+                                app:icon="@drawable/ic_dark_mode"
+                                app:iconGravity="textStart"
+                                app:iconPadding="6dp"
+                                app:iconSize="18dp" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/rowDynamic"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_palette" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Material You colours" />
+                            <TextView
+                            android:id="@+id/tvDynamicHint"
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Use colours from your wallpaper (Android 12+)" />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchDynamic"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        android:id="@+id/rowAnimations"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_animation" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Animations" />
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Animations"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Page turn when changing tab or profile, dust when closing or creating"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Page turn when changing tab or profile, dust when closing or creating" />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchAnimations"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="14dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        android:id="@+id/rowAdBlock"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_ad_off" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Ad blocker" />
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ad blocker"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Blocks known ad and tracker servers and hides empty ad boxes"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Blocks known ad and tracker servers and hides empty ad boxes" />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchAdBlock"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="14dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
                         android:id="@+id/rowKeepAwake"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
+                        style="@style/Widget.Nezu.PrefRow"
                         android:clickable="true"
-                        android:focusable="true"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Don't sleep"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
-                        <TextView
-                            android:id="@+id/tvKeepAwake"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorPrimary" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="Keeps the screen on while NeZu Space is open"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:focusable="true">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_timer" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Don't sleep" />
+                            <TextView
+                                android:id="@+id/tvKeepAwake"
+                                style="@style/Widget.Nezu.PrefRow.Value" />
+                            <TextView style="@style/Widget.Nezu.PrefRow.Summary" android:text="Keeps the screen on while NeZu Space is open" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ PRIVACY & SECURITY ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="PRIVACY &amp; SECURITY"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Privacy &amp; security" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:id="@+id/privacyList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp" />
+                    android:paddingVertical="8dp">
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ SOUNDS ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="SOUNDS"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Sounds" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
-
+                    android:paddingVertical="8dp">
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        android:id="@+id/rowSoundMaster"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Tertiary" android:src="@drawable/ic_volume" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Sound effects" />
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Sound effects"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Master switch for all sounds below"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Master switch for all sounds below" />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchSoundMaster"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
-
                     <LinearLayout
                         android:id="@+id/soundList"
                         android:layout_width="match_parent"
@@ -357,44 +281,36 @@
                         android:orientation="vertical" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ BACKGROUND PICTURE ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="BACKGROUND"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Background" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
-
+                    android:paddingVertical="8dp">
                     <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="150dp">
-                        <ImageView
+                        android:layout_height="180dp"
+                        android:layout_marginHorizontal="16dp"
+                        android:layout_marginTop="8dp">
+                        <com.google.android.material.imageview.ShapeableImageView
                             android:id="@+id/bgPreview"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="?attr/colorSurfaceContainerHighest"
                             android:contentDescription="Background preview"
-                            android:scaleType="centerCrop" />
+                            android:scaleType="centerCrop"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Medium" />
                         <TextView
                             android:id="@+id/tvNoPicture"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:drawableTop="@drawable/ic_wallpaper"
+                            android:drawablePadding="8dp"
+                            android:drawableTint="?attr/colorOnSurfaceVariant"
                             android:gravity="center"
                             android:text="No background selected"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
@@ -404,285 +320,185 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="16dp"
                         android:layout_marginTop="12dp"
                         android:orientation="horizontal">
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnPickBg"
-                            style="?attr/materialButtonStyle"
+                            style="@style/Widget.Material3.Button.Icon"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Choose picture, GIF or video" />
+                            android:text="Choose picture, GIF or video"
+                            app:icon="@drawable/ic_image" />
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRemoveBg"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
+                            android:contentDescription="Remove background"
                             android:text="Remove" />
                     </LinearLayout>
 
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:orientation="horizontal">
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:background="@null"
+                        android:paddingBottom="0dp">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_opacity" />
                         <TextView
+                            style="@style/Widget.Nezu.PrefRow.Title"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Picture opacity"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
+                            android:text="Picture opacity" />
                         <TextView
                             android:id="@+id/tvOpacity"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorPrimary"
-                            android:textStyle="bold" />
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="?attr/colorPrimary" />
                     </LinearLayout>
 
                     <com.google.android.material.slider.Slider
                         android:id="@+id/sliderOpacity"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="60dp"
+                        android:layout_marginEnd="8dp"
                         android:contentDescription="Picture opacity"
                         android:stepSize="5"
+                        app:tickVisible="false"
                         android:valueFrom="0"
                         android:valueTo="100" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="72dp"
+                        android:layout_marginEnd="20dp"
+                        android:layout_marginBottom="8dp"
                         android:text="Low = faint picture, high = vivid picture. Bars and sheets stay slightly see-through so the picture shows behind them."
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        android:id="@+id/rowWebTransparent"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_web" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Show behind web pages" />
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Show behind web pages"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Only pages with no background of their own. Text can be hard to read."
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Only pages with no background of their own. Text can be hard to read." />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchWebTransparent"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
-
                     <LinearLayout
                         android:id="@+id/rowVideoSound"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
+                        style="@style/Widget.Nezu.PrefRow"
                         android:visibility="gone">
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Tertiary" android:src="@drawable/ic_videocam" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Video sound" />
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Video sound"
-                                android:textAppearance="?attr/textAppearanceBodyLarge" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Play the sound of the background video. Off keeps it silent."
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Play the sound of the background video. Off keeps it silent." />
                         </LinearLayout>
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchVideoSound"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ HELP ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="HELP"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Help" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
-                    android:id="@+id/rowGuide"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:minHeight="68dp"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp">
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="How to use NeZu Space"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="Tabs, profiles, bookmarks, downloads, cookies and more"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:id="@+id/rowGuide"
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_menu_book" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="How to use NeZu Space" />
+                            <TextView style="@style/Widget.Nezu.PrefRow.Summary" android:text="Tabs, profiles, bookmarks, downloads, cookies and more" />
+                        </LinearLayout>
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:rotation="180"
-                        android:src="@drawable/ic_back"
-                        app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- ═══ ABOUT ═══ -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="6dp"
-                android:letterSpacing="0.12"
-                android:text="ABOUT"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorPrimary" />
-
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="About" />
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.Nezu.Card.Group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp">
+                android:layout_height="wrap_content">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:minHeight="64dp"
+                        android:background="@null">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_code" />
                         <TextView
+                            style="@style/Widget.Nezu.PrefRow.Title"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Developer"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
+                            android:text="Developer" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="D.Paradox"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textStyle="bold" />
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
                         android:id="@+id/rowTelegram"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:minHeight="64dp">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_send" />
                         <TextView
+                            style="@style/Widget.Nezu.PrefRow.Title"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Telegram"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
+                            android:text="Telegram" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@Parad0x1905006"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textColor="?attr/colorPrimary"
-                            android:textStyle="bold" />
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorPrimary" />
                     </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:minHeight="64dp"
+                        android:background="@null">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_language" />
                         <TextView
+                            style="@style/Widget.Nezu.PrefRow.Title"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Language"
-                            android:textAppearance="?attr/textAppearanceBodyLarge" />
+                            android:text="Language" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="English"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
                             android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                 </LinearLayout>
@@ -691,10 +507,15 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:drawableTop="@drawable/ic_favorite_small"
+                android:drawablePadding="6dp"
+                android:drawableTint="?attr/colorPrimary"
                 android:gravity="center"
                 android:text="Made by D.Paradox"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
-        </LinearLayout>
-    </ScrollView>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

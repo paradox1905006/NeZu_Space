@@ -7,27 +7,45 @@
     android:paddingHorizontal="24dp"
     android:paddingBottom="8dp">
 
-    <TextView
-        android:id="@+id/dlFileName"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:ellipsize="middle"
-        android:maxLines="2"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_tile_rounded"
+            android:backgroundTint="?attr/colorPrimaryContainer"
+            android:importantForAccessibility="no"
+            android:padding="12dp"
+            android:src="@drawable/ic_download"
+            app:tint="?attr/colorOnPrimaryContainer" />
+        <TextView
+            android:id="@+id/dlFileName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:maxLines="2"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface" />
+    </LinearLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/dlProgressBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:max="100"
-        app:trackCornerRadius="4dp" />
+        app:trackCornerRadius="4dp"
+        app:trackThickness="8dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
         <TextView
@@ -36,7 +54,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="0 MB"
-            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
         <TextView
@@ -44,8 +62,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="— KB/s"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 </LinearLayout>

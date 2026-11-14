@@ -11,7 +11,10 @@
         style="?attr/textInputOutlinedStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Tab name">
+        android:hint="Name"
+        app:counterEnabled="true"
+        app:counterMaxLength="24"
+        app:startIconDrawable="@drawable/ic_edit">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/nameInput"
@@ -24,14 +27,20 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="Color"
-        android:textAppearance="?attr/textAppearanceTitleSmall" />
+        android:layout_marginTop="12dp"
+        android:drawableStart="@drawable/ic_palette_small"
+        android:drawablePadding="8dp"
+        android:drawableTint="?attr/colorOnSurfaceVariant"
+        android:gravity="center_vertical"
+        android:text="Colour"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
 
     <GridLayout
         android:id="@+id/colorGrid"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
         android:columnCount="5" />
 </LinearLayout>

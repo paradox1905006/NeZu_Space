@@ -1,35 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Settings row built in code (Privacy & Security): optional icon, title, summary, optional switch. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:minHeight="56dp"
-    android:orientation="horizontal"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    style="@style/Widget.Nezu.PrefRow">
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+    <ImageView
+        android:id="@+id/ivPrefIcon"
+        style="@style/Widget.Nezu.PrefRow.Icon"
+        android:visibility="gone" />
+
+    <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
         <TextView
             android:id="@+id/tvPrefTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+            style="@style/Widget.Nezu.PrefRow.Title" />
         <TextView
             android:id="@+id/tvPrefHint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            style="@style/Widget.Nezu.PrefRow.Summary" />
     </LinearLayout>
 
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchPref"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp" />
+        style="@style/Widget.Nezu.PrefRow.Switch" />
 </LinearLayout>

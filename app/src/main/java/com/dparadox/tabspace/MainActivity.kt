@@ -65,6 +65,7 @@ import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.dparadox.tabspace.databinding.ActivityMainBinding
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -108,7 +109,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabAdapter: TabAdapter
     private lateinit var homeAdapter: HomeAdapter
     private var profileAdapter: ProfileAdapter? = null
-    private var profileDialog: androidx.appcompat.app.AlertDialog? = null
+    private var profileDialog: android.app.Dialog? = null
 
     /** True while a full-page animation overlay is running; gestures are ignored meanwhile. */
     private var busy = false
@@ -250,6 +251,19 @@ class MainActivity : AppCompatActivity() {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    /** Colour swatch for the colour pickers. The chosen one gets an outer ring and a check mark. */
+    private fun swatch(color: Int, selected: Boolean, ring: Int): android.graphics.drawable.Drawable {
+        val dot = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(color) }
+        if (!selected) return android.graphics.drawable.InsetDrawable(dot, dp(4))
+        val outer = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.TRANSPARENT); setStroke(dp(2), ring) }
+        val inner = android.graphics.drawable.InsetDrawable(dot, dp(5))
+        val check = androidx.appcompat.content.res.AppCompatResources.getDrawable(this, R.drawable.ic_check)?.mutate()?.apply {
+            setTint(if (androidx.core.graphics.ColorUtils.calculateLuminance(color) > 0.5) Color.BLACK else Color.WHITE)
+        }
+        val layers = listOfNotNull<android.graphics.drawable.Drawable>(outer, inner, check?.let { android.graphics.drawable.InsetDrawable(it, dp(11)) })
+        return android.graphics.drawable.LayerDrawable(layers.toTypedArray())
+    }
     private fun spanCount() = if (resources.configuration.screenWidthDp >= 600) 3 else 2
     private fun homeSpan() = if (resources.configuration.screenWidthDp >= 600) 6 else 4
     private fun animOn() = ThemePrefs.animations(this)
@@ -458,10 +472,13 @@ class MainActivity : AppCompatActivity() {
         ThemePrefs.applyToWindow(this, videoOverlay = true)
         videoBg.refresh()
         fun col(attr: Int) = MaterialColors.getColor(b.root, attr)
-        b.bottomBar.setBackgroundColor(
+        // Floating dock + search bar: rounded shapes, tinted (slightly see-through over a picture).
+        b.bottomBar.backgroundTintList = ColorStateList.valueOf(
             ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainer)))
+        b.urlCard.setCardBackgroundColor(
+            ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerHigh), 0xE6))
         b.switcherPanel.setCardBackgroundColor(
-            ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerHigh), 0xF2))
+            ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerLow), 0xF2))
         allTabs.forEach { it.webView?.let { wv -> applyWebBackground(wv) } }
     }
 
@@ -756,15 +773,16 @@ class MainActivity : AppCompatActivity() {
     private fun showTileMenu(bm: Bookmark, tile: View) {
         val pm = PopupMenu(this, tile)
         pm.menu.apply {
-            add(0, 1, 0, "Open in background")
-            add(0, 2, 1, "Open in new tab")
-            add(0, 3, 2, "Sort")
-            add(0, 4, 3, "Edit")
-            add(0, 5, 4, "Delete")
-            add(0, 6, 5, "Copy link")
-            add(0, 7, 6, "Share")
-            add(0, 8, 7, "Add to phone home screen")
+            add(0, 1, 0, "Open in background").setIcon(R.drawable.ic_tab_new)
+            add(0, 2, 1, "Open in new tab").setIcon(R.drawable.ic_open_in_new)
+            add(0, 3, 2, "Sort").setIcon(R.drawable.ic_sort)
+            add(0, 4, 3, "Edit").setIcon(R.drawable.ic_edit)
+            add(0, 5, 4, "Delete").setIcon(R.drawable.ic_delete)
+            add(0, 6, 5, "Copy link").setIcon(R.drawable.ic_content_copy)
+            add(0, 7, 6, "Share").setIcon(R.drawable.ic_share)
+            add(0, 8, 7, "Add to phone home screen").setIcon(R.drawable.ic_add_home_screen)
         }
+        pm.setForceShowIcon(true)
         pm.setOnMenuItemClickListener {
             when (it.itemId) {
                 1 -> openInBackground(bm.url)
@@ -820,7 +838,8 @@ class MainActivity : AppCompatActivity() {
     private fun showTerms() {
         val tv = TextView(this).apply {
             text = LegalText.TEXT
-            textSize = 14f
+            setTextAppearance(R.style.TextAppearance_Nezu_BodyMedium)
+            setLineSpacing(0f, 1.15f)
             setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
@@ -925,15 +944,16 @@ class MainActivity : AppCompatActivity() {
     private fun showImageMenu(tab: Tab, wv: WebView, img: String, link: String?) {
         val pm = PopupMenu(this, anchorAt(touchX, touchY))
         pm.menu.apply {
-            add(0, 1, 0, "View image")
-            add(0, 2, 1, "Download image")
-            add(0, 3, 2, "Share image")
-            add(0, 4, 3, "Search by image")
-            if (link != null) add(0, 5, 4, "Open link in new tab")
-            add(0, 6, 5, "Copy image link")
-            add(0, 7, 6, "Page info")
-            add(0, 8, 7, "Mark as ad")
+            add(0, 1, 0, "View image").setIcon(R.drawable.ic_visibility)
+            add(0, 2, 1, "Download image").setIcon(R.drawable.ic_download)
+            add(0, 3, 2, "Share image").setIcon(R.drawable.ic_share)
+            add(0, 4, 3, "Search by image").setIcon(R.drawable.ic_image_search)
+            if (link != null) add(0, 5, 4, "Open link in new tab").setIcon(R.drawable.ic_open_in_new)
+            add(0, 6, 5, "Copy image link").setIcon(R.drawable.ic_content_copy)
+            add(0, 7, 6, "Page info").setIcon(R.drawable.ic_info)
+            add(0, 8, 7, "Mark as ad").setIcon(R.drawable.ic_block)
         }
+        pm.setForceShowIcon(true)
         pm.setOnMenuItemClickListener {
             when (it.itemId) {
                 1 -> openInNewTab(img)
@@ -954,11 +974,12 @@ class MainActivity : AppCompatActivity() {
     private fun showLinkMenu(link: String) {
         val pm = PopupMenu(this, anchorAt(touchX, touchY))
         pm.menu.apply {
-            add(0, 1, 0, "Open in new tab")
-            add(0, 2, 1, "Open in background")
-            add(0, 3, 2, "Copy link")
-            add(0, 4, 3, "Share link")
+            add(0, 1, 0, "Open in new tab").setIcon(R.drawable.ic_open_in_new)
+            add(0, 2, 1, "Open in background").setIcon(R.drawable.ic_tab_new)
+            add(0, 3, 2, "Copy link").setIcon(R.drawable.ic_content_copy)
+            add(0, 4, 3, "Share link").setIcon(R.drawable.ic_share)
         }
+        pm.setForceShowIcon(true)
         pm.setOnMenuItemClickListener {
             when (it.itemId) {
                 1 -> openInNewTab(link)
@@ -1090,9 +1111,9 @@ class MainActivity : AppCompatActivity() {
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun showProfileSwitcher() {
-        val rv = RecyclerView(this)
+        val sheetView = layoutInflater.inflate(R.layout.sheet_profiles, null)
+        val rv = sheetView.findViewById<RecyclerView>(R.id.profileList)
         rv.layoutManager = LinearLayoutManager(this)
-        rv.setPadding(0, dp(8), 0, dp(8))
         val adapter = ProfileAdapter(
             profiles    = allProfiles,
             currentId   = { currentProfile?.id },
@@ -1108,12 +1129,16 @@ class MainActivity : AppCompatActivity() {
             if (p == null) restore()
             else confirmDeleteProfile(p, row, onCancel = restore)
         })
-        profileDialog = MaterialAlertDialogBuilder(this)
-            .setTitle("Profiles")
-            .setView(rv)
-            .setPositiveButton("New profile") { _, _ -> showCreateProfileDialog() }
-            .setNegativeButton("Close", null)
-            .show()
+        val sheet = BottomSheetDialog(this)
+        sheet.setContentView(sheetView)
+        sheetView.findViewById<View>(R.id.btnNewProfile).setOnClickListener {
+            sheet.dismiss(); showCreateProfileDialog()
+        }
+        sheet.setOnDismissListener { if (profileDialog === sheet) profileDialog = null }
+        sheet.behavior.skipCollapsed = true
+        sheet.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+        profileDialog = sheet
+        sheet.show()
     }
 
     private fun showCreateProfileDialog(editTarget: AppProfile? = null) {
@@ -1128,10 +1153,7 @@ class MainActivity : AppCompatActivity() {
 
         fun refresh() {
             dots.forEachIndexed { i, d ->
-                d.background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL; setColor(PALETTE[i])
-                    if (PALETTE[i] == chosen) setStroke(dp(4), ring)
-                }
+                d.background = swatch(PALETTE[i], PALETTE[i] == chosen, ring)
             }
         }
         PALETTE.forEach { c ->
@@ -1271,38 +1293,111 @@ class MainActivity : AppCompatActivity() {
         val p = currentProfile ?: return
         b.profileInitialBar.text = p.name.firstOrNull()?.uppercase() ?: "P"
         b.btnProfiles.imageTintList = ColorStateList.valueOf(p.color)
+        b.profileInitialBar.setTextColor(
+            if (androidx.core.graphics.ColorUtils.calculateLuminance(p.color) > 0.5) Color.BLACK else Color.WHITE)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
     //  Tab menu
     // ══════════════════════════════════════════════════════════════════════════
 
+    /** Main menu: a Material 3 bottom sheet with the page on top, quick actions and the full list. */
     private fun showMenu() {
         val tab = current ?: return
-        PopupMenu(this, b.btnMenu).apply {
-            menuInflater.inflate(R.menu.tab_menu, menu)
-            menu.findItem(R.id.action_pin).title = if (tab.pinned) "Unpin tab" else "Pin tab"
-            setOnMenuItemClickListener {
-                when (it.itemId) {
-                    R.id.action_home          -> showHome()
-                    R.id.action_add_home      -> addCurrentToHome()
-                    R.id.action_add_phone     -> pinCurrentPageToPhone()
-                    R.id.action_pin           -> togglePin(tab)
-                    R.id.action_edit          -> editTab(tab)
-                    R.id.action_avatar        -> pickAvatarForTab(tab)
-                    R.id.action_search_engine -> showSearchEngineDialog()
-                    R.id.action_downloads     -> showDownloadsSheet()
-                    R.id.action_copy          -> copyLink(tab)
-                    R.id.action_history       -> showHistory()
-                    R.id.action_cookies       -> showCookieMenu(tab)
-                    R.id.action_clear_data    -> showClearDataDialog()
-                    R.id.action_site_info     -> showSiteInfo(tab)
-                    R.id.action_close         -> closeTab(tab)
-                    R.id.action_settings      -> startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
-                }
-                true
+        val sheet = BottomSheetDialog(this)
+        val v = layoutInflater.inflate(R.layout.sheet_menu, null)
+
+        // Header: the page (or NeZu Space home) and the profile
+        val host = siteHost(tab.url)
+        val onHome = tab.homeShown || tab.url.isBlank()
+        v.findViewById<TextView>(R.id.menuTitle).text = when {
+            onHome                 -> "NeZu Space"
+            tab.title.isNotBlank() -> tab.title
+            else                   -> host ?: tab.url
+        }
+        v.findViewById<TextView>(R.id.menuSubtitle).text =
+            if (onHome || host == null) (currentProfile?.name ?: tab.name) else "${currentProfile?.name ?: tab.name} · $host"
+        val headerIcon = v.findViewById<ShapeableImageView>(R.id.menuIcon)
+        val favicon = if (!onHome && host != null) FaviconStore.get(this, host) else null
+        if (favicon != null) headerIcon.setImageBitmap(favicon)
+        else { headerIcon.setPadding(0, 0, 0, 0); headerIcon.scaleType = ImageView.ScaleType.CENTER_CROP; headerIcon.setImageResource(R.mipmap.ic_launcher) }
+
+        fun act(id: Int) { sheet.dismiss(); onMenuAction(id, tab) }
+
+        // Quick actions, 4 per row
+        val quick = listOf(
+            Triple(R.id.action_home, R.drawable.ic_home, "Home"),
+            Triple(R.id.action_add_home, R.drawable.ic_bookmark_add, "Add to Home"),
+            Triple(R.id.action_downloads, R.drawable.ic_download, "Downloads"),
+            Triple(R.id.action_history, R.drawable.ic_history, "History"),
+            Triple(R.id.action_copy, R.drawable.ic_content_copy, "Copy link"),
+            Triple(R.id.action_site_info, R.drawable.ic_info, "Site info"),
+            Triple(R.id.action_clear_data, R.drawable.ic_delete_sweep, "Clear data"),
+            Triple(R.id.action_settings, R.drawable.ic_settings, "Settings"),
+        )
+        val quickBox = v.findViewById<android.widget.LinearLayout>(R.id.menuQuick)
+        quick.chunked(4).forEach { rowItems ->
+            val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            rowItems.forEach { (id, icon, label) ->
+                val cell = layoutInflater.inflate(R.layout.item_menu_quick, row, false)
+                cell.findViewById<ImageView>(R.id.quickIcon).setImageResource(icon)
+                cell.findViewById<TextView>(R.id.quickLabel).text = label
+                cell.contentDescription = label
+                cell.setOnClickListener { act(id) }
+                row.addView(cell)
             }
-            show()
+            quickBox.addView(row)
+        }
+
+        // Full list
+        val list = listOf(
+            Triple(R.id.action_pin, R.drawable.ic_pin, if (tab.pinned) "Unpin tab" else "Pin tab"),
+            Triple(R.id.action_edit, R.drawable.ic_edit, "Edit tab"),
+            Triple(R.id.action_avatar, R.drawable.ic_image, "Set tab avatar"),
+            Triple(R.id.action_add_phone, R.drawable.ic_add_home_screen, "Add to phone home screen"),
+            Triple(R.id.action_search_engine, R.drawable.ic_travel_explore, "Search engine"),
+            Triple(R.id.action_cookies, R.drawable.ic_cookie, "Cookies"),
+            Triple(R.id.action_close, R.drawable.ic_tab_close, "Close tab"),
+        )
+        val listBox = v.findViewById<android.widget.LinearLayout>(R.id.menuList)
+        val error = MaterialColors.getColor(b.root, androidx.appcompat.R.attr.colorError)
+        list.forEach { (id, icon, label) ->
+            val row = layoutInflater.inflate(R.layout.item_menu_row, listBox, false)
+            val iv = row.findViewById<ImageView>(R.id.rowIcon)
+            val tv = row.findViewById<TextView>(R.id.rowLabel)
+            iv.setImageResource(icon)
+            tv.text = label
+            if (id == R.id.action_close) {
+                iv.imageTintList = ColorStateList.valueOf(error); tv.setTextColor(error)
+            }
+            row.setOnClickListener { act(id) }
+            listBox.addView(row)
+        }
+
+        sheet.setContentView(v)
+        sheet.behavior.skipCollapsed = true
+        sheet.behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+        sheet.show()
+    }
+
+    private fun onMenuAction(id: Int, tab: Tab) {
+        if (!allTabs.contains(tab)) return
+        when (id) {
+            R.id.action_home          -> showHome()
+            R.id.action_add_home      -> addCurrentToHome()
+            R.id.action_add_phone     -> pinCurrentPageToPhone()
+            R.id.action_pin           -> togglePin(tab)
+            R.id.action_edit          -> editTab(tab)
+            R.id.action_avatar        -> pickAvatarForTab(tab)
+            R.id.action_search_engine -> showSearchEngineDialog()
+            R.id.action_downloads     -> showDownloadsSheet()
+            R.id.action_copy          -> copyLink(tab)
+            R.id.action_history       -> showHistory()
+            R.id.action_cookies       -> showCookieMenu(tab)
+            R.id.action_clear_data    -> showClearDataDialog()
+            R.id.action_site_info     -> showSiteInfo(tab)
+            R.id.action_close         -> closeTab(tab)
+            R.id.action_settings      -> startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
         }
     }
 
@@ -1824,13 +1919,21 @@ class MainActivity : AppCompatActivity() {
         val dp = resources.displayMetrics.density
         val fmt = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
 
-        val search = android.widget.EditText(this).apply {
+        val searchLayout = com.google.android.material.textfield.TextInputLayout(
+            this, null, com.google.android.material.R.attr.textInputOutlinedStyle
+        ).apply {
             hint = "Search history"
-            setSingleLine(true)
+            startIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(this@MainActivity, R.drawable.ic_search)
+            endIconMode = com.google.android.material.textfield.TextInputLayout.END_ICON_CLEAR_TEXT
         }
+        val search = TextInputEditText(searchLayout.context).apply { setSingleLine(true) }
+        searchLayout.addView(search, android.widget.LinearLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
         val empty = TextView(this).apply {
             text = "No history yet"
-            setPadding(0, (24 * dp).toInt(), 0, (24 * dp).toInt())
+            setTextAppearance(R.style.TextAppearance_Nezu_BodyLarge)
+            setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
+            setPadding(0, (32 * dp).toInt(), 0, (32 * dp).toInt())
             gravity = android.view.Gravity.CENTER
         }
         val list = android.widget.ListView(this).apply {
@@ -1845,9 +1948,17 @@ class MainActivity : AppCompatActivity() {
                 val e = getItem(position)!!
                 val row = (convertView as? android.widget.LinearLayout) ?: android.widget.LinearLayout(context).apply {
                     orientation = android.widget.LinearLayout.VERTICAL
-                    setPadding((4 * dp).toInt(), (10 * dp).toInt(), (4 * dp).toInt(), (10 * dp).toInt())
-                    addView(TextView(context).apply { textSize = 16f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
-                    addView(TextView(context).apply { textSize = 12f; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE; alpha = 0.7f })
+                    setPadding((4 * dp).toInt(), (12 * dp).toInt(), (4 * dp).toInt(), (12 * dp).toInt())
+                    addView(TextView(context).apply {
+                        setTextAppearance(R.style.TextAppearance_Nezu_TitleSmall)
+                        setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
+                        maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+                    })
+                    addView(TextView(context).apply {
+                        setTextAppearance(R.style.TextAppearance_Nezu_BodySmall)
+                        setTextColor(MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant))
+                        maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+                    })
                 }
                 (row.getChildAt(0) as TextView).text = e.title.ifBlank { e.url }
                 (row.getChildAt(1) as TextView).text = e.url.substringAfter("://") + "  -  " + fmt.format(java.util.Date(e.time))
@@ -1886,7 +1997,7 @@ class MainActivity : AppCompatActivity() {
         val box = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding((24 * dp).toInt(), (8 * dp).toInt(), (24 * dp).toInt(), 0)
-            addView(search); addView(empty); addView(list)
+            addView(searchLayout); addView(empty); addView(list)
         }
         dlg = MaterialAlertDialogBuilder(this)
             .setTitle("History - ${prof.name}")
@@ -2252,7 +2363,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateListHeight(animate: Boolean) {
         val rv = b.tabList
         val maxH = (b.contentRoot.height * 0.65f).toInt().coerceAtLeast(dp(132))
-        val target = (profileTabs.size * dp(60) + dp(12)).coerceAtMost(maxH)
+        val target = (profileTabs.size * dp(70) + dp(20)).coerceAtMost(maxH)
         val lp = rv.layoutParams
         heightAnimator?.cancel()
         val from = if (lp.height > 0) lp.height else target
@@ -2296,6 +2407,7 @@ class MainActivity : AppCompatActivity() {
         val pts = profileTabs
         tabAdapter.submit(pts, current?.id)
         setTabCount(pts.size)   // all tabs of this profile
+        b.switcherSubtitle.text = "${pts.size} ${if (pts.size == 1) "tab" else "tabs"} · ${currentProfile?.name.orEmpty()}"
         if (b.switcher.visibility == View.VISIBLE) updateListHeight(animate = true)
     }
 
@@ -2523,10 +2635,7 @@ class MainActivity : AppCompatActivity() {
 
         fun refresh() {
             dots.forEachIndexed { i, d ->
-                d.background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL; setColor(PALETTE[i])
-                    if (PALETTE[i] == chosen) setStroke(dp(4), ring)
-                }
+                d.background = swatch(PALETTE[i], PALETTE[i] == chosen, ring)
             }
         }
         PALETTE.forEach { c ->

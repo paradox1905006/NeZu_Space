@@ -51,18 +51,25 @@ class HomeAdapter(
         h.itemView.translationX = 0f
         h.box.clipToOutline = true
         h.icon.scaleType = ImageView.ScaleType.FIT_CENTER
+        // Material You launcher-style tile: rounded square ("squircle") in a tonal surface colour.
+        val radius = 22f * ctx.resources.displayMetrics.density
         h.box.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
+            cornerRadius = radius
             setColor(MaterialColors.getColor(h.itemView,
-                com.google.android.material.R.attr.colorSurfaceContainerHighest))
+                com.google.android.material.R.attr.colorSurfaceContainerHigh))
         }
 
         if (position == items.size) {
-            val pad = (14 * ctx.resources.displayMetrics.density).toInt()
+            val pad = (18 * ctx.resources.displayMetrics.density).toInt()
+            h.box.background = GradientDrawable().apply {
+                cornerRadius = radius
+                setColor(MaterialColors.getColor(h.itemView,
+                    com.google.android.material.R.attr.colorPrimaryContainer))
+            }
             h.icon.setPadding(pad, pad, pad, pad)
             h.icon.setImageResource(R.drawable.ic_add)
             ImageViewCompat.setImageTintList(h.icon, android.content.res.ColorStateList.valueOf(
-                MaterialColors.getColor(h.itemView, com.google.android.material.R.attr.colorOnSurfaceVariant)))
+                MaterialColors.getColor(h.itemView, com.google.android.material.R.attr.colorOnPrimaryContainer)))
             h.letter.visibility = View.GONE
             h.name.text = "Add"
             h.itemView.setOnClickListener { onAdd() }
@@ -102,6 +109,11 @@ class HomeAdapter(
                 }
             }
             else -> {
+                h.box.background = GradientDrawable().apply {
+                    cornerRadius = radius
+                    setColor(MaterialColors.getColor(h.itemView,
+                        com.google.android.material.R.attr.colorSecondaryContainer))
+                }
                 h.icon.setPadding(smallPad, smallPad, smallPad, smallPad)
                 h.icon.setImageDrawable(null)
                 h.letter.visibility = View.VISIBLE

@@ -43,7 +43,8 @@ Each profile has its own cookies, storage, cache, search engine, home shortcuts 
 - Long-press a picture in a page: view, download, share, search by image, copy link, mark as ad.
 
 ### Look
-- Material 3 with Material You colours, light / dark / system theme.
+- Material 3 design with Material You colours (or the built-in rose palette), Google Sans Flex type, light / dark / system theme.
+- Floating bottom dock, Material 3 search bar, bottom-sheet menu and profiles, large collapsing titles in Settings and the guide.
 - Background: your own picture, an animated GIF or a looping video, with adjustable opacity and an optional video sound.
 - Page-turn and dust animations for changing, closing and creating tabs and profiles (can be switched off).
 - Sound effects with a master switch, a preview and your own audio for each event (tab/profile change, delete, create, app open).
@@ -97,5 +98,7 @@ NeZu Space is free software: you can redistribute it and/or modify it under the 
     Copyright (C) 2026 D.Paradox
 
 Libraries (AndroidX, Material Components, WebKit, Biometric) are Apache 2.0, which is compatible with GPLv3.
+
+The Google Sans Flex font in `app/src/main/res/font` is licensed under the SIL Open Font License 1.1 (full text in `app/src/main/assets/GoogleSansFlex-OFL.txt`). Icons are Material Symbols (Apache 2.0).
 
 The default *App open* sound in `app/src/main/res/raw` is a separate asset: it is only covered by the GPL if its author is the copyright holder. Replace it with a sound you own, or a CC0 / permissively licensed one, before publishing (for example to F-Droid).

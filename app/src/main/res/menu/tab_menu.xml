@@ -1,17 +1,18 @@
+<!-- Item ids of the main menu. The menu itself is the bottom sheet built in MainActivity.showMenu(). -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/action_home"          android:title="Home" />
-    <item android:id="@+id/action_add_home"      android:title="Add to Home" />
-    <item android:id="@+id/action_add_phone"     android:title="Add to phone home screen" />
-    <item android:id="@+id/action_pin"           android:title="Pin tab" />
-    <item android:id="@+id/action_edit"          android:title="Edit tab" />
-    <item android:id="@+id/action_avatar"        android:title="Set tab avatar" />
-    <item android:id="@+id/action_search_engine" android:title="Search engine" />
-    <item android:id="@+id/action_downloads"     android:title="Downloads" />
-    <item android:id="@+id/action_copy"          android:title="Copy link" />
-    <item android:id="@+id/action_history"       android:title="History" />
-    <item android:id="@+id/action_cookies"       android:title="Cookies" />
-    <item android:id="@+id/action_clear_data"    android:title="Clear data" />
-    <item android:id="@+id/action_site_info"     android:title="Site info" />
-    <item android:id="@+id/action_close"         android:title="Close tab" />
-    <item android:id="@+id/action_settings"      android:title="Settings" />
+    <item android:id="@+id/action_home"          android:icon="@drawable/ic_home"            android:title="Home" />
+    <item android:id="@+id/action_add_home"      android:icon="@drawable/ic_bookmark_add"    android:title="Add to Home" />
+    <item android:id="@+id/action_add_phone"     android:icon="@drawable/ic_add_home_screen" android:title="Add to phone home screen" />
+    <item android:id="@+id/action_pin"           android:icon="@drawable/ic_pin"             android:title="Pin tab" />
+    <item android:id="@+id/action_edit"          android:icon="@drawable/ic_edit"            android:title="Edit tab" />
+    <item android:id="@+id/action_avatar"        android:icon="@drawable/ic_image"           android:title="Set tab avatar" />
+    <item android:id="@+id/action_search_engine" android:icon="@drawable/ic_travel_explore"  android:title="Search engine" />
+    <item android:id="@+id/action_downloads"     android:icon="@drawable/ic_download"        android:title="Downloads" />
+    <item android:id="@+id/action_copy"          android:icon="@drawable/ic_content_copy"    android:title="Copy link" />
+    <item android:id="@+id/action_history"       android:icon="@drawable/ic_history"         android:title="History" />
+    <item android:id="@+id/action_cookies"       android:icon="@drawable/ic_cookie"          android:title="Cookies" />
+    <item android:id="@+id/action_clear_data"    android:icon="@drawable/ic_delete_sweep"    android:title="Clear data" />
+    <item android:id="@+id/action_site_info"     android:icon="@drawable/ic_info"            android:title="Site info" />
+    <item android:id="@+id/action_close"         android:icon="@drawable/ic_tab_close"       android:title="Close tab" />
+    <item android:id="@+id/action_settings"      android:icon="@drawable/ic_settings"        android:title="Settings" />
 </menu>
