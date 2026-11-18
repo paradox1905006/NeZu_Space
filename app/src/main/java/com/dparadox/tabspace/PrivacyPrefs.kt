@@ -115,7 +115,7 @@ object PrivacyPrefs {
     const val PERM_LOCATION = "location"
 
     private fun perms(c: Context): JSONObject =
-        runCatching { JSONObject(p(c).getString("site_perms", "{}")) }.getOrDefault(JSONObject())
+        runCatching { JSONObject(p(c).getString("site_perms", "{}") ?: "{}") }.getOrDefault(JSONObject())
 
     /** true = allowed, false = blocked, null = not decided yet. */
     fun sitePermission(c: Context, host: String, type: String): Boolean? {

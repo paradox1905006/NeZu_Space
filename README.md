@@ -102,3 +102,13 @@ Libraries (AndroidX, Material Components, WebKit, Biometric) are Apache 2.0, whi
 The Google Sans Flex font in `app/src/main/res/font` is licensed under the SIL Open Font License 1.1 (full text in `app/src/main/assets/GoogleSansFlex-OFL.txt`). Icons are Material Symbols (Apache 2.0).
 
 The default *App open* sound in `app/src/main/res/raw` is a separate asset: it is only covered by the GPL if its author is the copyright holder. Replace it with a sound you own, or a CC0 / permissively licensed one, before publishing (for example to F-Droid).
+
+## Building a signed release APK
+
+1. Install Android Studio (or JDK 17 + Android SDK 34) and open this folder.
+2. Put your keystore file in this folder (for example `mykeystore`).
+3. Copy `keystore.properties.example` to `keystore.properties` and fill in your passwords and alias.
+4. Run `gradlew.bat assembleRelease` (Windows) or `./gradlew assembleRelease` (macOS/Linux).
+5. The APK is at `app/build/outputs/apk/release/app-release.apk`.
+
+`keystore.properties` and the keystore are ignored by git. Without them, release builds are signed with the debug key.

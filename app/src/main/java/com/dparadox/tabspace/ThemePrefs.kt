@@ -50,13 +50,16 @@ object ThemePrefs {
         applyNightMode(mode)
     }
 
-    fun applyNightMode(mode: Int) = AppCompatDelegate.setDefaultNightMode(
-        when (mode) {
-            MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-            MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-            else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-        }
-    )
+    fun applyNightMode(mode: Int) {
+        LockState.markExternalLaunch()   // light/dark rebuilds the screens: that is not leaving the app
+        AppCompatDelegate.setDefaultNightMode(
+            when (mode) {
+                MODE_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                MODE_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+        )
+    }
 
     // ── Material You ──────────────────────────────────────────────────────────
     fun dynamicColor(c: Context) = p(c).getBoolean("dynamic", true)

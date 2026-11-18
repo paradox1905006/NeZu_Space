@@ -63,6 +63,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.webkit.ProfileStore
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
+import androidx.webkit.ScriptHandler
 import androidx.webkit.WebViewFeature
 import com.dparadox.tabspace.databinding.ActivityMainBinding
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -145,6 +146,10 @@ class MainActivity : AppCompatActivity() {
 
     /** Receives blob: downloads from pages (see saveBlob). */
     private val blobBridge = BlobBridge()
+    private val srcBridge = SourceBridge()
+    private val extBridge by lazy { ExtensionBridge(this) }
+    private val extHandlers = java.util.WeakHashMap<WebView, List<ScriptHandler>>()
+    private var extVersionSeen = ExtensionStore.version
 
     // ── Privacy & security state ──────────────────────────────────────────────
     private val lockScreen by lazy { LockScreen(this) { onUnlockSuccess() } }
@@ -437,7 +442,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        LockState.onStop()
+        LockState.onStop(isChangingConfigurations)
         super.onStop()
     }
 
@@ -450,12 +455,17 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onResume() {
         super.onResume()
-        if (themeVersionSeen != ThemePrefs.version) { recreate(); return }   // Material You toggled
+        if (themeVersionSeen != ThemePrefs.version) { LockState.markExternalLaunch(); recreate(); return }   // Material You toggled
         AdBlocker.enabled = ThemePrefs.adBlock(this)
         applyAppTheme()   // picks up picture / opacity changes made in Settings
         current?.webView?.onResume()
         applyKeepAwake()
         applyPrivacy()
+        if (extVersionSeen != ExtensionStore.version) {
+            extVersionSeen = ExtensionStore.version
+            allTabs.forEach { t -> t.webView?.let { applyExtensions(t, it) } }
+            current?.webView?.reload()   // the open page picks up the new extension setup
+        }
     }
     override fun onDestroy() {
         if (isFinishing) wipeProfiles(live = true)
@@ -1344,6 +1354,8 @@ class MainActivity : AppCompatActivity() {
             Triple(R.id.action_site_info, R.drawable.ic_info, "Site info"),
             Triple(R.id.action_clear_data, R.drawable.ic_delete_sweep, "Clear data"),
             Triple(R.id.action_settings, R.drawable.ic_settings, "Settings"),
+            Triple(R.id.action_view_source, R.drawable.ic_code, "View source"),
+            Triple(R.id.action_extensions, R.drawable.ic_extension, "Extensions"),
         )
         val quickBox = v.findViewById<android.widget.LinearLayout>(R.id.menuQuick)
         quick.chunked(4).forEach { rowItems ->
@@ -1355,6 +1367,12 @@ class MainActivity : AppCompatActivity() {
                 cell.contentDescription = label
                 cell.setOnClickListener { act(id) }
                 row.addView(cell)
+            }
+            // keep the last row's cells the same size as the full rows above
+            repeat(4 - rowItems.size) {
+                val gap = layoutInflater.inflate(R.layout.item_menu_quick, row, false)
+                gap.visibility = View.INVISIBLE
+                row.addView(gap)
             }
             quickBox.addView(row)
         }
@@ -1404,6 +1422,9 @@ class MainActivity : AppCompatActivity() {
             R.id.action_copy          -> copyLink(tab)
             R.id.action_history       -> showHistory()
             R.id.action_cookies       -> showCookieMenu(tab)
+            R.id.action_view_source   -> viewSource(tab)
+            R.id.action_copy_source   -> copySource(tab)
+            R.id.action_extensions    -> showExtensionsDialog()
             R.id.action_clear_data    -> showClearDataDialog()
             R.id.action_site_info     -> showSiteInfo(tab)
             R.id.action_close         -> closeTab(tab)
@@ -2072,6 +2093,300 @@ class MainActivity : AppCompatActivity() {
         allTabs.forEach { t -> t.webView?.let { applyWebPrivacy(it) } }
         applySecureFlag()
         enforceLock()
+    }
+
+    // ── View / copy page source ────────────────────────────────────────────────
+
+    /** The page's HTML as the server sent it (read again by a script in the page); if that fails, the page as it is now. */
+    private fun loadSource(tab: Tab, rendered: Boolean, cb: (String?) -> Unit) {
+        val wv = tab.webView ?: run { cb(null); return }
+        if (rendered) { renderedSource(wv, cb); return }
+        val nonce = java.util.UUID.randomUUID().toString()
+        var done = false
+        val finish = { t: String? -> if (!done) { done = true; if (t != null) cb(t) else renderedSource(wv, cb) } }
+        srcBridge.expect(nonce) { finish(it) }
+        wv.postDelayed({ if (!done) { srcBridge.cancel(nonce); finish(null) } }, 10_000)
+        wv.evaluateJavascript(
+            """(function(n){function d(t){NezuSrc.put(n,t);}try{fetch(location.href,{credentials:'include'}).then(function(r){return r.text();}).then(d).catch(function(){d(null);});}catch(e){d(null);}})("$nonce")""",
+            null)
+    }
+
+    private fun renderedSource(wv: WebView, cb: (String?) -> Unit) {
+        wv.evaluateJavascript(
+            """(function(){var t=document.doctype;return (t?'<!DOCTYPE '+t.name+'>\n':'')+document.documentElement.outerHTML;})()""") { r ->
+            cb(runCatching { org.json.JSONTokener(r).nextValue() as? String }.getOrNull())
+        }
+    }
+
+    private fun sourceHost(tab: Tab): String? {
+        val u = Uri.parse(tab.url)
+        return if (tab.webView != null && (u.scheme == "http" || u.scheme == "https")) u.host else null
+    }
+
+    private fun copySource(tab: Tab) {
+        if (sourceHost(tab) == null) { toast("No web page is open"); return }
+        toast("Getting source...")
+        loadSource(tab, false) { text ->
+            if (text == null) toast("Could not get the source") else copyBigText(text)
+        }
+    }
+
+    private fun copyBigText(text: String) {
+        try {
+            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("page source", text))
+            toast("Source copied")
+        } catch (_: Exception) { toast("This page is too big to copy at once") }
+    }
+
+    private fun viewSource(tab: Tab) {
+        val host = sourceHost(tab)
+        if (host == null) { toast("No web page is open"); return }
+        toast("Getting source...")
+        loadSource(tab, false) { text ->
+            if (text == null) toast("Could not get the source") else showSourceDialog(tab, host, text)
+        }
+    }
+
+    private fun showSourceDialog(tab: Tab, host: String, first: String) {
+        val limit = 200_000
+        var srcText = first
+        var rendered = false
+        val surface = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorSurface)
+        val onSurface = MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorOnSurface)
+        val dp = resources.displayMetrics.density
+
+        val title = TextView(this).apply {
+            textSize = 15f; maxLines = 1; setTextColor(onSurface)
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        val body = TextView(this).apply {
+            typeface = android.graphics.Typeface.MONOSPACE
+            textSize = 12f; setTextColor(onSurface)
+            setTextIsSelectable(true)
+            val p = (12 * dp).toInt(); setPadding(p, p, p, (88 * dp).toInt())   // room for the floating button
+        }
+        fun show() {
+            title.text = (if (rendered) "Rendered HTML" else "Source") + " - " + host
+            body.text = if (srcText.length > limit) srcText.substring(0, limit) + "\n\n... showing the first $limit of ${srcText.length} characters. Copy gets everything." else srcText
+        }
+        show()
+
+        fun button(label: String) = com.google.android.material.button.MaterialButton(this, null, androidx.appcompat.R.attr.borderlessButtonStyle).apply { this.text = label }
+        val toggle = button("Show rendered")
+        val close = button("Close")
+
+        val bar = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding((16 * dp).toInt(), 0, (4 * dp).toInt(), 0)
+            addView(title, android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(close)
+        }
+        val actions = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setPadding((8 * dp).toInt(), 0, (8 * dp).toInt(), 0)
+            addView(toggle)
+        }
+        val scroll = android.widget.ScrollView(this).apply { addView(body) }
+        val column = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(bar, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (52 * dp).toInt()))
+            addView(actions, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(scroll, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
+        // Floating "Copy source" button (bottom right)
+        val fab = com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton(this).apply {
+            text = "Copy source"
+            setIconResource(R.drawable.ic_content_copy)
+            setOnClickListener { copyBigText(srcText) }
+        }
+        val root = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(surface)
+            addView(column, android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(fab, android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                gravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
+                setMargins(0, 0, (16 * dp).toInt(), (24 * dp).toInt())
+            })
+        }
+        val dlg = android.app.Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
+        dlg.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        dlg.setContentView(root)
+        dlg.window?.apply {
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(surface))
+        }
+        close.setOnClickListener { dlg.dismiss() }
+        toggle.setOnClickListener {
+            toggle.isEnabled = false
+            loadSource(tab, !rendered) { t ->
+                toggle.isEnabled = true
+                if (t == null) { toast("Could not get the source"); return@loadSource }
+                rendered = !rendered
+                srcText = t
+                toggle.text = if (rendered) "Show original" else "Show rendered"
+                show()
+                scroll.scrollTo(0, 0)
+            }
+        }
+        dlg.show()
+    }
+
+    // ── Sign-in pop-ups ─────────────────────────────────────────────────────────
+    private val popupClosers = java.util.WeakHashMap<WebView, () -> Unit>()
+
+    /** window.open() from a page (GitHub / Google sign-in ...): a full-screen window with its own WebView, linked to the page that opened it. */
+    private fun openPopupWindow(tab: Tab, resultMsg: android.os.Message): Boolean {
+        val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
+        val pop = WebView(this)
+        if (tab.webkitProfileName.isNotEmpty() && WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+            runCatching { WebViewCompat.setProfile(pop, tab.webkitProfileName) }
+        }
+        with(pop.settings) {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            allowFileAccess = false
+            allowContentAccess = false
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
+        }
+        applyWebPrivacy(pop)
+        pop.addJavascriptInterface(extBridge, "NezuExt")
+        applyExtensions(tab, pop)
+
+        val host = TextView(this).apply {
+            textSize = 15f
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setTextColor(MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorOnSurface))
+        }
+        val close = ImageView(this).apply {
+            setImageResource(R.drawable.ic_tab_close)
+            imageTintList = ColorStateList.valueOf(MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorOnSurfaceVariant))
+            val pad = (12 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad, pad, pad)
+            contentDescription = "Close"
+        }
+        val bar = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            val h = (16 * resources.displayMetrics.density).toInt()
+            setPadding(h, 0, 4, 0)
+            addView(host, android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(close, android.widget.LinearLayout.LayoutParams(
+                (48 * resources.displayMetrics.density).toInt(), (48 * resources.displayMetrics.density).toInt()))
+        }
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorSurface))
+            addView(bar, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(pop, android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
+        val dlg = android.app.Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
+        dlg.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        dlg.setContentView(root)
+        dlg.window?.apply {
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(MaterialColors.getColor(b.root, com.google.android.material.R.attr.colorSurface)))
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
+        var closed = false
+        val closeIt = {
+            if (!closed) {
+                closed = true
+                popupClosers.remove(pop)
+                runCatching { dlg.dismiss() }
+                pop.stopLoading(); pop.loadUrl("about:blank"); (pop.parent as? ViewGroup)?.removeView(pop); pop.destroy()
+            }
+        }
+        popupClosers[pop] = closeIt
+        close.setOnClickListener { closeIt() }
+        dlg.setOnKeyListener { _, code, ev ->
+            if (code == android.view.KeyEvent.KEYCODE_BACK && ev.action == android.view.KeyEvent.ACTION_UP) {
+                if (pop.canGoBack()) pop.goBack() else closeIt()
+                true
+            } else false
+        }
+        dlg.setOnCancelListener { closeIt() }
+
+        pop.webViewClient = object : WebViewClient() {
+            override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+                host.text = runCatching { Uri.parse(url).host }.getOrNull() ?: ""
+            }
+            override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest): Boolean {
+                if (AdBlocker.enabled && !req.hasGesture() && AdBlocker.isBlockedHost(req.url.host)) return true
+                val scheme = req.url.scheme ?: return false
+                if (scheme in listOf("http", "https", "about", "data", "blob", "javascript")) return false
+                openExternal(req.url)
+                return true
+            }
+            override fun shouldInterceptRequest(view: WebView, req: WebResourceRequest) =
+                ExtensionStore.serve(this@MainActivity, req.url)
+                    ?: AdBlocker.intercept(req.url.host, req.isForMainFrame, req.url.toString())
+        }
+        pop.webChromeClient = object : WebChromeClient() {
+            override fun onCloseWindow(window: WebView) { window.post { closeIt() } }
+        }
+
+        transport.webView = pop
+        resultMsg.sendToTarget()
+        dlg.show()
+        return true
+    }
+
+    /** Menu > Extensions: switch extensions on or off for the current profile. Adding and removing is in Settings. */
+    private fun showExtensionsDialog() {
+        val prof = currentProfile ?: return
+        val exts = ExtensionStore.all(this)
+        val openSettings = { startActivity(Intent(this, SettingsActivity::class.java)) }
+        if (exts.isEmpty()) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Extensions")
+                .setMessage("No extensions yet. Add one from a .zip in Settings > Extensions.")
+                .setPositiveButton("Open Settings") { _, _ -> openSettings() }
+                .setNegativeButton("Close", null)
+                .show()
+            return
+        }
+        val names = exts.map { it.name }.toTypedArray()
+        val checked = BooleanArray(exts.size) { exts[it].enabled && prof.id in exts[it].profiles }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Extensions - ${prof.name}")
+            .setMultiChoiceItems(names, checked) { _, i, on -> checked[i] = on }
+            .setPositiveButton("Save") { _, _ ->
+                exts.forEachIndexed { i, e ->
+                    val has = prof.id in e.profiles
+                    if (checked[i] && !(has && e.enabled)) {
+                        ExtensionStore.setProfiles(this, e.id, e.profiles + prof.id)
+                        if (!e.enabled) ExtensionStore.setEnabled(this, e.id, true)
+                    } else if (!checked[i] && has) {
+                        ExtensionStore.setProfiles(this, e.id, e.profiles - prof.id)
+                    }
+                }
+                if (extVersionSeen != ExtensionStore.version) {
+                    extVersionSeen = ExtensionStore.version
+                    allTabs.forEach { t -> t.webView?.let { applyExtensions(t, it) } }
+                    current?.webView?.reload()
+                }
+            }
+            .setNeutralButton("Settings") { _, _ -> openSettings() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** Extensions (Settings > Extensions): content scripts of the extensions switched on for this tab's profile. */
+    private fun applyExtensions(tab: Tab, wv: WebView) {
+        extHandlers.remove(wv)?.forEach { runCatching { it.remove() } }
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return
+        val handlers = ArrayList<ScriptHandler>()
+        for (ext in ExtensionStore.forProfile(this, tab.profileId)) {
+            for (i in ext.scripts.indices) {
+                val js = ExtensionStore.buildScript(this, ext, i) ?: continue
+                val rules = ExtensionStore.originRules(ext.scripts[i])
+                if (rules.isEmpty()) continue
+                runCatching { handlers.add(WebViewCompat.addDocumentStartJavaScript(wv, js, rules)) }
+            }
+        }
+        if (handlers.isNotEmpty()) extHandlers[wv] = handlers
     }
 
     private fun applyWebPrivacy(wv: WebView) {
@@ -2745,10 +3060,16 @@ class MainActivity : AppCompatActivity() {
             // A page must not read the phone's files or other apps' content through the browser.
             allowFileAccess      = false
             allowContentAccess   = false
+            // Sign-in pop-ups (GitHub, Google ...) are opened by the page with window.open; they get their own window (onCreateWindow).
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
         }
         applyWebPrivacy(wv)
 
         wv.addJavascriptInterface(blobBridge, "NezuBlob")
+        wv.addJavascriptInterface(extBridge, "NezuExt")
+        wv.addJavascriptInterface(srcBridge, "NezuSrc")
+        applyExtensions(tab, wv)
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             runCatching { WebViewCompat.addDocumentStartJavaScript(wv, DOWNLOAD_NAME_HOOK, setOf("*")) }
         }
@@ -2796,7 +3117,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             override fun shouldInterceptRequest(view: WebView, req: WebResourceRequest) =
-                AdBlocker.intercept(req.url.host, req.isForMainFrame, req.url.toString())
+                ExtensionStore.serve(this@MainActivity, req.url)
+                    ?: AdBlocker.intercept(req.url.host, req.isForMainFrame, req.url.toString())
 
             override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest): Boolean {
                 // Redirects / pop-ups to ad servers that the user did not start are cancelled.
@@ -2856,6 +3178,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         wv.webChromeClient = object : WebChromeClient() {
+            override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message): Boolean {
+                // A tapped link with target=_blank just opens in this tab, like before.
+                val hit = view.hitTestResult
+                if ((hit.type == WebView.HitTestResult.SRC_ANCHOR_TYPE || hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) &&
+                    hit.extra?.startsWith("http") == true) {
+                    view.loadUrl(hit.extra!!)
+                    return false
+                }
+                // Pop-ups nobody asked for stay blocked: they need a tap now or a few seconds ago.
+                val touched = System.currentTimeMillis() - tab.lastTouchAt < 10_000
+                if (!isUserGesture && !touched) return false
+                return openPopupWindow(tab, resultMsg)
+            }
+
+            override fun onCloseWindow(window: WebView) {
+                window.post { popupClosers[window]?.invoke() }
+            }
+
             override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
                 val host = request.origin?.host
                 val types = ArrayList<String>()

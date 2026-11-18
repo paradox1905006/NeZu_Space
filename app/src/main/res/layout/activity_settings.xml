@@ -250,6 +250,18 @@
                     android:paddingVertical="8dp">
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Extensions" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Nezu.Card.Group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:id="@+id/extensionList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp" />
+            </com.google.android.material.card.MaterialCardView>
             <TextView style="@style/Widget.Nezu.SectionHeader" android:text="Sounds" />
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Nezu.Card.Group"
@@ -481,6 +493,23 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@Parad0x1905006"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorPrimary" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/rowChannel"
+                        style="@style/Widget.Nezu.PrefRow"
+                        android:minHeight="64dp">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_send" />
+                        <TextView
+                            style="@style/Widget.Nezu.PrefRow.Title"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Official Telegram channel" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@paradoxical_store"
                             android:textAppearance="?attr/textAppearanceLabelLarge"
                             android:textColor="?attr/colorPrimary" />
                     </LinearLayout>

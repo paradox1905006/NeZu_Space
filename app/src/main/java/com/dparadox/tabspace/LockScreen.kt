@@ -34,10 +34,11 @@ object LockState {
 
     fun onStart() { started++ }
 
-    fun onStop() {
+    /** [changingConfig]: the screen is only being rebuilt (theme, light/dark, rotation), the user did not leave. */
+    fun onStop(changingConfig: Boolean = false) {
         started = (started - 1).coerceAtLeast(0)
         if (started == 0) {
-            val external = externalAt != 0L && SystemClock.elapsedRealtime() - externalAt < 10 * 60_000L
+            val external = changingConfig || (externalAt != 0L && SystemClock.elapsedRealtime() - externalAt < 10 * 60_000L)
             if (!external) leftAt = SystemClock.elapsedRealtime()
         }
     }

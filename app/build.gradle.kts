@@ -1,7 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// Release signing reads keystore.properties in the project root (never committed, see .gitignore).
+// Copy keystore.properties.example to keystore.properties and fill in your values.
+// Without it, release builds fall back to the debug key so the build still works.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
+}
+val hasReleaseKey = keystorePropsFile.exists() &&
+    listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all { !keystoreProps.getProperty(it).isNullOrBlank() }
 
 android {
     namespace = "com.dparadox.tabspace"
@@ -11,8 +23,19 @@ android {
         applicationId = "com.dparadox.tabspace"
         minSdk = 26
         targetSdk = 34
-        versionCode = 12
-        versionName = "4.1"
+        versionCode = 13
+        versionName = "4.2"
+    }
+
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -20,7 +43,12 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKey) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn("keystore.properties not found or incomplete: signing release with the DEBUG key.")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

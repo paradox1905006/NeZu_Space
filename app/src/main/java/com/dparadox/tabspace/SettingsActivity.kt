@@ -31,6 +31,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var slider: Slider
     private lateinit var btnRemove: MaterialButton
 
+    private val pickExtensionZip = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) installExtension(uri)
+    }
+
     private val pickBackground = registerForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -116,7 +120,7 @@ class SettingsActivity : AppCompatActivity() {
             swDynamic.isChecked = ThemePrefs.dynamicColor(this)
             swDynamic.setOnCheckedChangeListener { _, on ->
                 ThemePrefs.setDynamicColor(this, on)
-                recreate()
+                LockState.markExternalLaunch(); recreate()
             }
         } else {
             swDynamic.isChecked = false
@@ -131,6 +135,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // ── Privacy & security ───────────────────────────────────────────────
         setupPrivacy()
+
+        // ── Extensions ───────────────────────────────────────────────────────
+        renderExtensions()
 
         // ── Sounds ───────────────────────────────────────────────────────────
         setupSounds()
@@ -217,6 +224,13 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<LinearLayout>(R.id.rowTelegram).setOnClickListener {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Parad0x1905006")))
+            } catch (_: Exception) {
+                Toast.makeText(this, "Could not open Telegram", Toast.LENGTH_SHORT).show()
+            }
+        }
+        findViewById<LinearLayout>(R.id.rowChannel).setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/paradoxical_store")))
             } catch (_: Exception) {
                 Toast.makeText(this, "Could not open Telegram", Toast.LENGTH_SHORT).show()
             }
@@ -324,7 +338,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onStop() {
         SoundFx.stopAll()   // a preview must not keep playing after leaving Settings
-        LockState.onStop()
+        LockState.onStop(isChangingConfigurations)
         super.onStop()
     }
 
@@ -515,6 +529,143 @@ class SettingsActivity : AppCompatActivity() {
             .setNeutralButton("Reset all") { _, _ -> PrivacyPrefs.clearAllSites(this); refresh() }
             .setNegativeButton("Close", null)
             .show()
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  Extensions
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private fun extRow(list: LinearLayout, title: String, hint: String, icon: Int): View {
+        val row = layoutInflater.inflate(R.layout.item_pref_row, list, false)
+        row.findViewById<ImageView>(R.id.ivPrefIcon).apply { setImageResource(icon); visibility = View.VISIBLE }
+        row.findViewById<TextView>(R.id.tvPrefTitle).text = title
+        row.findViewById<TextView>(R.id.tvPrefHint).text = hint
+        row.findViewById<View>(R.id.switchPref).visibility = View.GONE
+        list.addView(row)
+        return row
+    }
+
+    private fun profileSummary(ext: ExtensionStore.Ext): String {
+        val all = TabStore(this).load().profiles
+        val names = all.filter { it.id in ext.profiles }.map { it.name }
+        return when {
+            names.isEmpty() -> "No profile chosen. Tap to choose where it works."
+            names.size == all.size && all.size > 1 -> "Works in all profiles"
+            else -> "Works in: " + names.joinToString(", ")
+        }
+    }
+
+    private fun renderExtensions() {
+        val list = findViewById<LinearLayout>(R.id.extensionList)
+        list.removeAllViews()
+
+        extRow(list, "Add extension",
+            "Pick a .zip with a manifest.json (Chrome style). Works for extensions that change web pages. " +
+                "Background scripts and toolbar popups are not supported.", R.drawable.ic_add)
+            .setOnClickListener { pickExtensionZip.launch(arrayOf("*/*")) }
+
+        for (ext in ExtensionStore.all(this)) {
+            val row = extRow(list, ext.name,
+                (if (ext.version.isNotBlank()) "v${ext.version} \u00B7 " else "") + profileSummary(ext), R.drawable.ic_extension)
+            val sw = row.findViewById<MaterialSwitch>(R.id.switchPref)
+            sw.visibility = View.VISIBLE
+            sw.isChecked = ext.enabled
+            sw.setOnCheckedChangeListener { _, on ->
+                ExtensionStore.setEnabled(this, ext.id, on)
+                if (on && ext.profiles.isEmpty()) {
+                    Toast.makeText(this, "Choose a profile for this extension", Toast.LENGTH_SHORT).show()
+                    chooseExtensionProfiles(ext)
+                } else renderExtensions()
+            }
+            row.setOnClickListener { manageExtension(ext) }
+        }
+    }
+
+    private fun installExtension(uri: Uri) {
+        val progress = MaterialAlertDialogBuilder(this).setTitle("Adding extension").setMessage("Unpacking...").setCancelable(false).show()
+        Thread {
+            val result = runCatching { ExtensionStore.stage(this, uri) }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) {
+                    result.getOrNull()?.let { ExtensionStore.discard(this, it) }
+                    return@runOnUiThread
+                }
+                progress.dismiss()
+                result.onSuccess { confirmExtension(it) }
+                    .onFailure { Toast.makeText(this, it.message ?: "Could not read this extension", Toast.LENGTH_LONG).show() }
+            }
+        }.start()
+    }
+
+    private fun confirmExtension(st: ExtensionStore.Staged) {
+        val ext = st.ext
+        val sites = ext.sites()
+        val msg = StringBuilder()
+        if (ext.description.isNotBlank()) msg.append(ext.description).append("\n\n")
+        msg.append("It can read and change pages on:\n")
+        sites.take(6).forEach { msg.append("\u2022 ").append(it).append('\n') }
+        if (sites.size > 6) msg.append("\u2022 and ").append(sites.size - 6).append(" more\n")
+        if (ext.unsupported.isNotEmpty())
+            msg.append("\nNot supported here: ").append(ext.unsupported.joinToString(", ")).append(". Parts that need them will not work.\n")
+        msg.append("\nOnly add extensions you trust.")
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Add ${ext.name}?")
+            .setMessage(msg.toString())
+            .setPositiveButton("Add") { _, _ ->
+                val added = ExtensionStore.commit(this, st)
+                renderExtensions()
+                chooseExtensionProfiles(added)
+            }
+            .setNegativeButton("Cancel") { _, _ -> ExtensionStore.discard(this, st) }
+            .setOnCancelListener { ExtensionStore.discard(this, st) }
+            .show()
+    }
+
+    private fun chooseExtensionProfiles(ext: ExtensionStore.Ext) {
+        val profiles = TabStore(this).load().profiles
+        if (profiles.isEmpty()) { Toast.makeText(this, "No profiles yet", Toast.LENGTH_SHORT).show(); renderExtensions(); return }
+        val names = profiles.map { it.name }.toTypedArray()
+        val checked = BooleanArray(profiles.size) { profiles[it].id in ext.profiles }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Use ${ext.name} in")
+            .setMultiChoiceItems(names, checked) { _, i, on -> checked[i] = on }
+            .setPositiveButton("Save") { _, _ ->
+                ExtensionStore.setProfiles(this, ext.id, profiles.indices.filter { checked[it] }.map { profiles[it].id }.toSet())
+                renderExtensions()
+            }
+            .setNegativeButton("Cancel") { _, _ -> renderExtensions() }
+            .setOnCancelListener { renderExtensions() }
+            .show()
+    }
+
+    private fun manageExtension(ext: ExtensionStore.Ext) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(ext.name)
+            .setItems(arrayOf("Choose profiles", "Details", "Remove")) { _, i ->
+                when (i) {
+                    0 -> chooseExtensionProfiles(ext)
+                    1 -> showExtensionDetails(ext)
+                    else -> MaterialAlertDialogBuilder(this)
+                        .setTitle("Remove ${ext.name}?")
+                        .setMessage("The extension and the data it saved are deleted.")
+                        .setPositiveButton("Remove") { _, _ -> ExtensionStore.remove(this, ext.id); renderExtensions() }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun showExtensionDetails(ext: ExtensionStore.Ext) {
+        val msg = StringBuilder()
+        if (ext.version.isNotBlank()) msg.append("Version ").append(ext.version).append("\n\n")
+        if (ext.description.isNotBlank()) msg.append(ext.description).append("\n\n")
+        msg.append("Runs on:\n")
+        ext.sites().forEach { msg.append("\u2022 ").append(it).append('\n') }
+        msg.append("\n").append(profileSummary(ext))
+        if (ext.unsupported.isNotEmpty()) msg.append("\n\nNot supported here: ").append(ext.unsupported.joinToString(", "))
+        MaterialAlertDialogBuilder(this).setTitle(ext.name).setMessage(msg.toString()).setPositiveButton("Close", null).show()
     }
 
     private fun refreshBackgroundUi() {

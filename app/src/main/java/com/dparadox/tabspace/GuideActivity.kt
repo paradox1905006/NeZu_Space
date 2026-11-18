@@ -105,6 +105,16 @@ class GuideActivity : AppCompatActivity() {
             "• Encrypt saved data: tabs, profiles, shortcuts and the download list use a key of the phone's Keystore. Pictures and downloaded files are not encrypted.\n\n" +
             "Menu → Site info shows the address, whether the connection is secure and the certificate."),
 
+        Topic("Extensions",
+            "Settings → Extensions.\n\n" +
+            "1. Tap \"Add extension\" and pick a .zip that holds a manifest.json (a Chrome-style extension).\n" +
+            "2. Read what it can change and tap Add.\n" +
+            "3. Choose the profiles it should work in. It does nothing in the other profiles.\n\n" +
+            "• The switch turns an extension on or off. Tap its name to change profiles, see details or remove it.\n" +
+            "• The open page reloads when you come back from Settings.\n" +
+            "• Works: scripts and styles that change web pages. Not supported: background scripts, toolbar popups and network rules, so some extensions (ad blockers, password managers) will not work.\n" +
+            "• Extension scripts run inside the page. Only add extensions you trust."),
+
         Topic("Clear data",
             "Menu → Clear data.\n\n" +
             "Choose what to clear for the current profile only:\n" +
@@ -174,7 +184,7 @@ class GuideActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        LockState.onStop()
+        LockState.onStop(isChangingConfigurations)
         super.onStop()
     }
 

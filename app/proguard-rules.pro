@@ -8,3 +8,8 @@
 -keepclassmembers class com.dparadox.tabspace.BlobBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# JavaScript bridge used by extensions (chrome.storage)
+-keepclassmembers class com.dparadox.tabspace.ExtensionBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}
