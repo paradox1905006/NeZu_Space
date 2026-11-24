@@ -174,6 +174,12 @@ class MainActivity : AppCompatActivity() {
     /** Moving (video) background behind the whole UI. */
     private val videoBg by lazy { VideoBackground(this) }
 
+    /** Cherry blossom petals between the window background and the UI. */
+    private val sakura by lazy { SakuraView(this) }
+    private var urlGlass: LiquidGlassDrawable? = null
+    private var dockGlass: LiquidGlassDrawable? = null
+    private var resumed = false
+
     // ── Saving (debounced so page loads never block the UI) ────────────────────
     private val saveHandler = Handler(Looper.getMainLooper())
     private val saveRunnable = Runnable { store.save(allTabs, current?.id, allProfiles, currentProfile?.id) }
@@ -324,6 +330,9 @@ class MainActivity : AppCompatActivity() {
         b.swipeUrl.onSwipe = { d -> switchTabBy(d) }
         b.swipeBottom.onSwipe = { d -> switchProfileBy(d) }
         b.swipeBottom.excluded = b.btnTabs   // the tab button has its own swipe (tabs), the bar swipes profiles
+        // Liquid glass bars: glow under the finger and a jelly squish on press.
+        b.swipeUrl.onTouchAt = { e -> LiquidGlass.onBarTouch(b.urlCard, urlGlass, e, b.urlCard.left.toFloat(), b.urlCard.top.toFloat()) }
+        b.swipeBottom.onTouchAt = { e -> LiquidGlass.onBarTouch(b.bottomBar, dockGlass, e, b.bottomBar.left.toFloat(), b.bottomBar.top.toFloat()) }
 
         DownloadEngine.listener = { persist() }
         DownloadEngine.cookieProvider = { rec -> cookieForDownload(rec) }
@@ -451,12 +460,15 @@ class MainActivity : AppCompatActivity() {
         awakeHandler.removeCallbacks(awakeOff)
         if (customView == null) window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         videoBg.pause()
+        resumed = false
+        refreshSakura()
         current?.webView?.onPause(); persistNow()
     }
     override fun onResume() {
         super.onResume()
         if (themeVersionSeen != ThemePrefs.version) { LockState.markExternalLaunch(); recreate(); return }   // Material You toggled
         AdBlocker.enabled = ThemePrefs.adBlock(this)
+        resumed = true
         applyAppTheme()   // picks up picture / opacity changes made in Settings
         current?.webView?.onResume()
         applyKeepAwake()
@@ -487,19 +499,42 @@ class MainActivity : AppCompatActivity() {
     private fun applyAppTheme() {
         ThemePrefs.applyToWindow(this, videoOverlay = true)
         videoBg.refresh()
+        attachSakura()
         fun col(attr: Int) = MaterialColors.getColor(b.root, attr)
-        // Floating dock + search bar: rounded shapes, tinted (slightly see-through over a picture).
-        b.bottomBar.backgroundTintList = ColorStateList.valueOf(
+        // Floating dock + search bar + tab sheet: liquid glass, always a little see-through.
+        dockGlass = LiquidGlass.apply(b.bottomBar, 32f,
             ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainer)))
-        b.urlCard.setCardBackgroundColor(
+        urlGlass = LiquidGlass.apply(b.urlGlass, 28f,
             ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerHigh), 0xE6))
-        b.switcherPanel.setCardBackgroundColor(
-            ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerLow), 0xF2))
+        val sr = 28f * resources.displayMetrics.density
+        LiquidGlass.apply(b.switcherGlass, floatArrayOf(sr, sr, sr, sr, 0f, 0f, 0f, 0f),
+            ThemePrefs.chrome(this, col(com.google.android.material.R.attr.colorSurfaceContainerLow), 0xF2)).maxAlpha = 0xE0
+        refreshSakura()
         allTabs.forEach { it.webView?.let { wv -> applyWebBackground(wv) } }
         // Home logo + "NeZu Space" title follow the picture opacity (Settings > Background).
         val homeAlpha = if (ThemePrefs.hasBackground(this)) (ThemePrefs.opacity(this) / 100f).coerceIn(0.1f, 1f) else 1f
         b.homeLogo.alpha = homeAlpha
         b.homeTitle.alpha = homeAlpha
+    }
+
+    /** Puts the petal layer right below the app UI (above the window picture and the video). */
+    private fun attachSakura() {
+        val decor = window.decorView as ViewGroup
+        if (sakura.parent != null) return
+        val content = findViewById<View>(android.R.id.content)
+        var top: View = content
+        while (top.parent is View && top.parent !== decor) top = top.parent as View
+        val index = decor.indexOfChild(top).coerceAtLeast(0)
+        decor.addView(sakura, index, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    }
+
+    /** Petals fall while the home screen (or a see-through page) is visible; otherwise they fade away. */
+    private fun refreshSakura() {
+        if (!::b.isInitialized) return
+        val homeVisible = b.homeView.visibility == View.VISIBLE
+        val seeThrough = ThemePrefs.hasBackground(this) && ThemePrefs.webTransparent(this)
+        sakura.setRunning(resumed && ThemePrefs.sakura(this) && (homeVisible || seeThrough))
     }
 
     private fun applyWebBackground(wv: WebView) {
@@ -693,6 +728,7 @@ class MainActivity : AppCompatActivity() {
         val show = current?.homeShown == true
         b.homeView.visibility = if (show) View.VISIBLE else View.GONE
         b.webContainer.visibility = if (show) View.INVISIBLE else View.VISIBLE
+        refreshSakura()
         if (show) {
             refreshHome()
             if (animate && animOn()) {
@@ -1150,6 +1186,7 @@ class MainActivity : AppCompatActivity() {
             else confirmDeleteProfile(p, row, onCancel = restore)
         })
         val sheet = BottomSheetDialog(this)
+        LiquidGlass.styleSheet(sheet)
         sheet.setContentView(sheetView)
         sheetView.findViewById<View>(R.id.btnNewProfile).setOnClickListener {
             sheet.dismiss(); showCreateProfileDialog()
@@ -1325,6 +1362,7 @@ class MainActivity : AppCompatActivity() {
     private fun showMenu() {
         val tab = current ?: return
         val sheet = BottomSheetDialog(this)
+        LiquidGlass.styleSheet(sheet)
         val v = layoutInflater.inflate(R.layout.sheet_menu, null)
 
         // Header: the page (or NeZu Space home) and the profile

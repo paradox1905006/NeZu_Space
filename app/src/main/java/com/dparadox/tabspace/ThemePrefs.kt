@@ -74,6 +74,10 @@ object ThemePrefs {
     fun setAnimations(c: Context, on: Boolean) =
         p(c).edit().putBoolean("animations", on).apply()
 
+    // ── Cherry blossom petals falling behind the UI ──
+    fun sakura(c: Context) = p(c).getBoolean("sakura", true)
+    fun setSakura(c: Context, on: Boolean) = p(c).edit().putBoolean("sakura", on).apply()
+
     // ── Don't sleep: 0 = off, -1 = always while the app is open, otherwise minutes without touch ──
     fun keepAwake(c: Context) = p(c).getInt("keep_awake", 0)
     fun setKeepAwake(c: Context, minutes: Int) { p(c).edit().putInt("keep_awake", minutes).apply() }

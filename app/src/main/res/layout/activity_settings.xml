@@ -208,6 +208,20 @@
                             style="@style/Widget.Nezu.PrefRow.Switch" />
                     </LinearLayout>
                     <LinearLayout
+                        android:id="@+id/rowSakura"
+                        style="@style/Widget.Nezu.PrefRow">
+                        <ImageView style="@style/Widget.Nezu.PrefRow.Icon" android:src="@drawable/ic_sakura" />
+                        <LinearLayout style="@style/Widget.Nezu.PrefRow.Text">
+                            <TextView style="@style/Widget.Nezu.PrefRow.Title" android:text="Cherry blossoms" />
+                            <TextView
+                                style="@style/Widget.Nezu.PrefRow.Summary"
+                                android:text="Sakura petals falling softly behind the home screen" />
+                        </LinearLayout>
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchSakura"
+                            style="@style/Widget.Nezu.PrefRow.Switch" />
+                    </LinearLayout>
+                    <LinearLayout
                         android:id="@+id/rowAdBlock"
                         style="@style/Widget.Nezu.PrefRow">
                         <ImageView style="@style/Widget.Nezu.PrefRow.Icon.Secondary" android:src="@drawable/ic_ad_off" />

@@ -23,8 +23,8 @@ android {
         applicationId = "com.dparadox.tabspace"
         minSdk = 26
         targetSdk = 34
-        versionCode = 13
-        versionName = "4.2"
+        versionCode = 14
+        versionName = "4.3"
     }
 
     signingConfigs {

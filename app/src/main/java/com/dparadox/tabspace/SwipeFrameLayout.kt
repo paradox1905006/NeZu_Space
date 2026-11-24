@@ -19,6 +19,14 @@ class SwipeFrameLayout @JvmOverloads constructor(
     var onSwipe: ((Int) -> Unit)? = null
     var canSwipe: () -> Boolean = { true }
 
+    /** Sees every touch on the bar first (liquid glass glow + jelly press). */
+    var onTouchAt: ((MotionEvent) -> Unit)? = null
+
+    override fun dispatchTouchEvent(e: MotionEvent): Boolean {
+        onTouchAt?.invoke(e)
+        return super.dispatchTouchEvent(e)
+    }
+
     /** A child that handles its own gestures (e.g. the tab button). Touches that start on it are ignored here. */
     var excluded: View? = null
 

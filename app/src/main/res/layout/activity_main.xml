@@ -19,11 +19,12 @@
             android:layout_marginHorizontal="12dp"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="4dp"
-            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="28dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp">
             <LinearLayout
+                android:id="@+id/urlGlass"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
@@ -199,12 +200,13 @@
                 android:layout_gravity="bottom|center_horizontal"
                 android:clickable="true"
                 android:focusable="true"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                app:cardElevation="6dp"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="0dp"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.Nezu.Sheet"
                 app:strokeWidth="0dp">
 
                 <LinearLayout
+                    android:id="@+id/switcherGlass"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
@@ -283,8 +285,6 @@
             android:layout_marginHorizontal="12dp"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_dock"
-            android:backgroundTint="?attr/colorSurfaceContainer"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingHorizontal="4dp">

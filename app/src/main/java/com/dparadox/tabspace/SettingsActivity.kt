@@ -133,6 +133,10 @@ class SettingsActivity : AppCompatActivity() {
         swAnim.isChecked = ThemePrefs.animations(this)
         swAnim.setOnCheckedChangeListener { _, on -> ThemePrefs.setAnimations(this, on) }
 
+        val swSakura = findViewById<MaterialSwitch>(R.id.switchSakura)
+        swSakura.isChecked = ThemePrefs.sakura(this)
+        swSakura.setOnCheckedChangeListener { _, on -> ThemePrefs.setSakura(this, on) }
+
         // ── Privacy & security ───────────────────────────────────────────────
         setupPrivacy()
 
@@ -208,6 +212,7 @@ class SettingsActivity : AppCompatActivity() {
         listOf(
             R.id.rowDynamic to R.id.switchDynamic,
             R.id.rowAnimations to R.id.switchAnimations,
+            R.id.rowSakura to R.id.switchSakura,
             R.id.rowAdBlock to R.id.switchAdBlock,
             R.id.rowSoundMaster to R.id.switchSoundMaster,
             R.id.rowWebTransparent to R.id.switchWebTransparent,

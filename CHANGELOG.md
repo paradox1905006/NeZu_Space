@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.3 - Liquid glass & cherry blossoms
+- Liquid glass: the search bar, bottom dock, tab panel and menu sheets are now see-through glass with a bright rim, a soft top shine, a slowly moving liquid highlight and a light sweep every few seconds. The glass glows under your finger and the bars squish like jelly when pressed. On Android 12+ menu sheets also blur what is behind them.
+- Cherry blossoms: sakura petals drift down behind the home screen, swaying, spinning and tumbling in a gentle breeze. They fade away while a web page is open to save battery. Turn them off in Settings > Cherry blossoms.
+
 ## Unreleased - Material 3 redesign
 - New look on every screen, built on Material 3 with Material You: a full rose colour scheme for light and dark (wallpaper colours still replace it on Android 12+), Google Sans Flex type and softer, rounder shapes.
 - Browser: Material 3 search bar with the profile colour as a badge, floating bottom dock, profile button shows a coloured avatar with the initial.
